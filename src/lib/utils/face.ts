@@ -6,6 +6,7 @@ let vision: any | null = null;
 let loadingPromise: Promise<void> | null = null;
 
 const MP_VERSION = (process.env.NEXT_PUBLIC_MEDIAPIPE_TASKS_VISION_VERSION || "0.10.3").trim();
+const MAX_FACES = Number.parseInt(process.env.NEXT_PUBLIC_FACE_MAX_FACES || '2', 10);
 const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 const MODULE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
 
@@ -22,9 +23,9 @@ async function ensureFaceLandmarker() {
     landmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
       baseOptions: { modelAssetPath: MODULE_URL + "/face_landmarker.task" },
       runningMode: "IMAGE",
-      numFaces: 1,
-      outputFaceBlendshapes: false,
-      outputFacialTransformationMatrixes: false,
+      numFaces: Math.max(1, Math.min(5, isNaN(MAX_FACES) ? 2 : MAX_FACES)),
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true,
     });
   })();
 
@@ -79,6 +80,17 @@ export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null
   let norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
   const emb = new Float32Array(vec.map(v => v / norm));
   return emb;
+}
+
+export async function countFaces(file: File): Promise<number> {
+  if (typeof window === 'undefined') return 0;
+  await ensureFaceLandmarker();
+  if (!landmarker) return 0;
+  const bitmap = await imageBitmapFromFile(file);
+  const result = landmarker.detect(bitmap as any);
+  // @ts-ignore
+  const faces = result?.faceLandmarks as { x: number; y: number; z?: number }[][] | undefined;
+  return Array.isArray(faces) ? faces.length : 0;
 }
 
 export function cosineSimilarity(a: FaceEmbedding, b: FaceEmbedding): number {
