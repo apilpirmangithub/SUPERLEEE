@@ -564,6 +564,8 @@ Thank you.`
           <HistorySidebar
             messages={chatAgent.messages}
             onNewChat={chatAgent.newChat}
+            history={chatAgent.history?.map(h => ({ id: h.id, title: h.title, lastMessage: h.lastMessage, timestamp: h.timestamp, messageCount: h.messageCount }))}
+            onOpenSession={chatAgent.openSession}
           />
         </div>
 
