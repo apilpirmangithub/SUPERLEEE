@@ -36,6 +36,7 @@ export function EnhancedAgentOrchestrator() {
   const [lastDHash, setLastDHash] = useState<string | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [awaitingIdentity, setAwaitingIdentity] = useState<boolean>(false);
+  const [dupCheck, setDupCheck] = useState<{ checked: boolean; found: boolean; tokenId?: string } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -177,6 +178,9 @@ Note: AI-generated images cannot be licensed for AI training purposes - it doesn
           }
         }
       } catch {}
+      finally {
+        setDupCheck({ checked: true, found: dupFound, tokenId: dupTokenId });
+      }
 
       // Decide next action based on IP status tolerance/risk (whitelist forces safe)
       const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
@@ -294,37 +298,40 @@ Tx: ${result.txHash}
         return;
       }
 
-      // Duplicate check before signing
-      try {
-        const { compressImage } = await import("@/lib/utils/image");
-        const { sha256HexOfFile } = await import("@/lib/utils/crypto");
-        const { checkDuplicateByImageHash, checkDuplicateQuick } = await import("@/lib/utils/registry");
-        const spg = process.env.NEXT_PUBLIC_SPG_COLLECTION as `0x${string}` | undefined;
-        if (spg && publicClient) {
-          const compressed = await compressImage(fileToUse);
-          const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
-          const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
-          const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve, reject) => {
-            const t = setTimeout(() => resolve(null as any), timeoutMs);
-            p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
-          });
-          const quick = await withTimeout(checkDuplicateQuick(publicClient, spg, imageHash));
-          if (quick?.found) {
-            chatAgent.addMessage("agent", `❌ This image is already registered as IP (Token ID: ${quick.tokenId}). Registration blocked.`);
-            setToast("Duplicate image detected ❌");
-            chatAgent.clearPlan();
-            return;
+      // Duplicate check before signing (skip if already checked safe during analysis)
+      const alreadyCheckedSafe = dupCheck?.checked && !dupCheck.found;
+      if (!alreadyCheckedSafe) {
+        try {
+          const { compressImage } = await import("@/lib/utils/image");
+          const { sha256HexOfFile } = await import("@/lib/utils/crypto");
+          const { checkDuplicateByImageHash, checkDuplicateQuick } = await import("@/lib/utils/registry");
+          const spg = process.env.NEXT_PUBLIC_SPG_COLLECTION as `0x${string}` | undefined;
+          if (spg && publicClient) {
+            const compressed = await compressImage(fileToUse);
+            const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
+            const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
+            const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve, reject) => {
+              const t = setTimeout(() => resolve(null as any), timeoutMs);
+              p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
+            });
+            const quick = await withTimeout(checkDuplicateQuick(publicClient, spg, imageHash));
+            if (quick?.found) {
+              chatAgent.addMessage("agent", `❌ This image is already registered as IP (Token ID: ${quick.tokenId}). Registration blocked.`);
+              setToast("Duplicate image detected ❌");
+              chatAgent.clearPlan();
+              return;
+            }
+            const dup = await withTimeout(checkDuplicateByImageHash(publicClient, spg, imageHash));
+            if (dup?.found) {
+              chatAgent.addMessage("agent", `❌ This image is already registered as IP (Token ID: ${dup.tokenId}). Registration blocked.`);
+              setToast("Duplicate image detected ❌");
+              chatAgent.clearPlan();
+              return;
+            }
           }
-          const dup = await withTimeout(checkDuplicateByImageHash(publicClient, spg, imageHash));
-          if (dup?.found) {
-            chatAgent.addMessage("agent", `❌ This image is already registered as IP (Token ID: ${dup.tokenId}). Registration blocked.`);
-            setToast("Duplicate image detected ❌");
-            chatAgent.clearPlan();
-            return;
-          }
+        } catch (e) {
+          console.warn("Duplicate pre-check failed:", e);
         }
-      } catch (e) {
-        console.warn("Duplicate pre-check failed:", e);
       }
 
       chatAgent.updateStatus("📝 Registering IP...");
