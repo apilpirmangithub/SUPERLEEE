@@ -4,7 +4,7 @@ import type { Message } from "@/types/agents";
 interface HistorySidebarProps {
   messages: Message[];
   onNewChat: () => void;
-  history?: Array<{ id: string; title: string; lastMessage: string; timestamp: number; messageCount: number }>;
+  chatHistory?: Array<{ id: string; title: string; lastMessage: string; timestamp: number; messageCount: number }>;
   onOpenSession?: (id: string) => void;
 }
 
@@ -16,14 +16,14 @@ interface ChatSession {
   messageCount: number;
 }
 
-export function HistorySidebar({ messages, onNewChat }: HistorySidebarProps) {
+export function HistorySidebar({ messages, onNewChat, chatHistory, onOpenSession }: HistorySidebarProps) {
   // Group messages into sessions based on conversation flow
   const createChatSessions = (): ChatSession[] => {
     const sessions: ChatSession[] = [];
 
     // Add saved sessions from history first (most recent already first if provided that way)
-    if (history && history.length > 0) {
-      for (const h of history) {
+    if (chatHistory && chatHistory.length > 0) {
+      for (const h of chatHistory) {
         sessions.push({
           id: h.id,
           title: h.title,
