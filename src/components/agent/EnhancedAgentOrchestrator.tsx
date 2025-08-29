@@ -296,7 +296,6 @@ Tx: ${result.txHash}
 
       // Duplicate check before signing
       try {
-        chatAgent.updateStatus("Checking if this image is already registered...");
         const { compressImage } = await import("@/lib/utils/image");
         const { sha256HexOfFile } = await import("@/lib/utils/crypto");
         const { checkDuplicateByImageHash, checkDuplicateQuick } = await import("@/lib/utils/registry");
