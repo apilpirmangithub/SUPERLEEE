@@ -1,95 +1,186 @@
-// Lightweight face embedding using MediaPipe FaceLandmarker via CDN
-// No npm deps required; runs fully on-device in the browser
+// Client-side face embedding using InsightFace (ArcFace) via ONNX Runtime Web loaded from CDN
+// Runs fully in the browser; no npm deps. Returns 512-dim normalized embeddings.
 
-let landmarker: any | null = null;
-let vision: any | null = null;
-let loadingPromise: Promise<void> | null = null;
+let ortLoaded: Promise<any> | null = null;
+let recogSession: any | null = null;
 
-const MP_VERSION = (process.env.NEXT_PUBLIC_MEDIAPIPE_TASKS_VISION_VERSION || "0.10.3").trim();
-const MAX_FACES = Number.parseInt(process.env.NEXT_PUBLIC_FACE_MAX_FACES || '2', 10);
-const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
-const MODULE_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
+const ORT_CDN = (process.env.NEXT_PUBLIC_ORT_WEB_CDN || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js").trim();
+const INSIGHT_RECOG_URL = (process.env.NEXT_PUBLIC_INSIGHTFACE_RECOG_URL || "https://cdn.jsdelivr.net/npm/insightface.js@0.1.0/models/buffalo_l/w600k_r50.onnx").trim();
+const INPUT_SIZE = Number.parseInt(process.env.NEXT_PUBLIC_INSIGHTFACE_INPUT_SIZE || "112", 10);
+const CHANNEL_ORDER = (process.env.NEXT_PUBLIC_INSIGHTFACE_CHANNEL_ORDER || "BGR").toUpperCase() as "RGB" | "BGR";
 
-async function ensureFaceLandmarker() {
-  if (landmarker) return;
-  if (loadingPromise) return loadingPromise;
-
-  loadingPromise = (async () => {
-    if (typeof window === 'undefined') return;
-    try {
-      // Dynamic ESM import from CDN (works in modern browsers)
-      vision = await import(/* @vite-ignore */ /* webpackIgnore: true */ MODULE_URL + "/vision_bundle.mjs");
-      const { FilesetResolver, FaceLandmarker } = vision as any;
-      const filesetResolver = await FilesetResolver.forVisionTasks(WASM_BASE);
-      landmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-        baseOptions: { modelAssetPath: MODULE_URL + "/face_landmarker.task" },
-        runningMode: "IMAGE",
-        numFaces: Math.max(1, Math.min(5, isNaN(MAX_FACES) ? 2 : MAX_FACES)),
-        outputFaceBlendshapes: true,
-        outputFacialTransformationMatrixes: true,
-      });
-    } catch (e) {
-      console.warn('FaceLandmarker init failed, falling back', e);
-      landmarker = null;
-    }
-  })();
-
-  await loadingPromise;
+async function loadScriptOnce(src: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const existing = Array.from(document.scripts).find(s => s.src === src);
+  if (existing) return;
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(script);
+  });
 }
 
-async function imageBitmapFromFile(file: File): Promise<ImageBitmap> {
-  return await createImageBitmap(file);
+async function ensureOrt(): Promise<any> {
+  if (typeof window === 'undefined') return null;
+  if ((window as any).ort) return (window as any).ort;
+  if (!ortLoaded) {
+    ortLoaded = (async () => {
+      await loadScriptOnce(ORT_CDN);
+      const ort = (window as any).ort;
+      if (!ort) throw new Error('onnxruntime-web not available');
+      // Prefer WASM; WebGL may fail on some devices. wasmPaths auto-resolve from CDN.
+      try {
+        ort.env.wasm.numThreads = Math.max(1, navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 1);
+        ort.env.wasm.simd = true;
+      } catch {}
+      return ort;
+    })();
+  }
+  return ortLoaded;
+}
+
+function centerCropBox(w: number, h: number, scale = 0.7) {
+  const size = Math.floor(Math.min(w, h) * scale);
+  const x = Math.max(0, Math.floor((w - size) / 2));
+  const y = Math.max(0, Math.floor((h - size) / 2));
+  return { x, y, size };
+}
+
+async function detectFaceBox(imgBitmap: ImageBitmap): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  // Use built-in FaceDetector when available; otherwise fallback to center crop.
+  // @ts-ignore
+  if (typeof window !== 'undefined' && (window as any).FaceDetector) {
+    try {
+      // @ts-ignore
+      const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      // FaceDetector API accepts ImageBitmap in modern browsers
+      const faces = await detector.detect(imgBitmap as any);
+      if (Array.isArray(faces) && faces.length > 0) {
+        const box = faces[0].boundingBox as DOMRectReadOnly;
+        return { x: Math.max(0, Math.floor(box.x)), y: Math.max(0, Math.floor(box.y)), width: Math.floor(box.width), height: Math.floor(box.height) };
+      }
+    } catch {
+      // ignore and fallback
+    }
+  }
+  const { x, y, size } = centerCropBox(imgBitmap.width, imgBitmap.height, 0.7);
+  return { x, y, width: size, height: size };
+}
+
+async function ensureRecognizer(): Promise<any> {
+  if (recogSession) return recogSession;
+  const ort: any = await ensureOrt();
+  if (!ort) return null;
+  recogSession = await ort.InferenceSession.create(INSIGHT_RECOG_URL, { executionProviders: ['wasm'] }).catch(async () => {
+    // Fallback: default provider
+    return await ort.InferenceSession.create(INSIGHT_RECOG_URL);
+  });
+  return recogSession;
+}
+
+function toCHWFloat(imageData: ImageData, size: number, order: 'RGB' | 'BGR'): Float32Array {
+  const { data, width, height } = imageData;
+  // Resize to size x size using canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D not available');
+  const tmp = document.createElement('canvas');
+  tmp.width = width; tmp.height = height;
+  const tctx = tmp.getContext('2d');
+  if (!tctx) throw new Error('Canvas 2D not available');
+  tctx.putImageData(imageData, 0, 0);
+  ctx.drawImage(tmp, 0, 0, size, size);
+  const resized = ctx.getImageData(0, 0, size, size).data;
+
+  const out = new Float32Array(3 * size * size);
+  const mean = 127.5;
+  const std = 128; // scale to [-1, 1]
+  let p = 0;
+  for (let i = 0; i < size * size; i++) {
+    const r = resized[p++];
+    const g = resized[p++];
+    const b = resized[p++];
+    p++; // skip alpha
+    const rn = (r - mean) / std;
+    const gn = (g - mean) / std;
+    const bn = (b - mean) / std;
+    if (order === 'RGB') {
+      out[i] = rn; // R
+      out[i + size * size] = gn; // G
+      out[i + 2 * size * size] = bn; // B
+    } else {
+      out[i] = bn; // B
+      out[i + size * size] = gn; // G
+      out[i + 2 * size * size] = rn; // R
+    }
+  }
+  return out;
+}
+
+async function bitmapFromFile(file: File): Promise<ImageBitmap> {
+  const url = URL.createObjectURL(file);
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return await createImageBitmap(blob);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export type FaceEmbedding = Float32Array;
 
-// Build a normalized landmark-based embedding (translation/scale invariant)
 export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null> {
   if (typeof window === 'undefined') return null;
-  await ensureFaceLandmarker();
-  if (!landmarker) return null;
+  try {
+    const session = await ensureRecognizer();
+    if (!session) return null;
 
-  const bitmap = await imageBitmapFromFile(file);
-  const result = landmarker.detect(bitmap as any);
-  // @ts-ignore
-  const faces = result?.faceLandmarks as { x: number; y: number; z?: number }[][] | undefined;
-  if (!faces || faces.length === 0) return null;
-  const pts = faces[0];
-  if (!pts || pts.length === 0) return null;
+    const bitmap = await bitmapFromFile(file);
+    const box = await detectFaceBox(bitmap);
+    if (!box) return null;
 
-  // Choose eye indices for scale reference (MediaPipe 468 landmarks)
-  const LEFT_EYE_IDX = 33; // left eye outer
-  const RIGHT_EYE_IDX = 263; // right eye outer
-  const pL = pts[Math.min(LEFT_EYE_IDX, pts.length - 1)];
-  const pR = pts[Math.min(RIGHT_EYE_IDX, pts.length - 1)];
-  const eyeDist = Math.hypot((pL.x - pR.x), (pL.y - pR.y)) || 1e-6;
+    // Crop face region with margin
+    const margin = 0.2; // 20% margin
+    const cx = Math.max(0, Math.floor(box.x - box.width * margin));
+    const cy = Math.max(0, Math.floor(box.y - box.height * margin));
+    const cw = Math.min(bitmap.width - cx, Math.floor(box.width * (1 + 2 * margin)));
+    const ch = Math.min(bitmap.height - cy, Math.floor(box.height * (1 + 2 * margin)));
 
-  // Center by mean
-  let mx = 0, my = 0;
-  for (const p of pts) { mx += p.x; my += p.y; }
-  mx /= pts.length; my /= pts.length;
+    const canvas = document.createElement('canvas');
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(bitmap as any, cx, cy, cw, ch, 0, 0, cw, ch);
+    const imgData = ctx.getImageData(0, 0, cw, ch);
 
-  // Build vector from a subset for size: take every 4th point to ~117 pairs
-  const vec: number[] = [];
-  for (let i = 0; i < pts.length; i += 4) {
-    const p = pts[i];
-    vec.push((p.x - mx) / eyeDist, (p.y - my) / eyeDist);
+    const chw = toCHWFloat(imgData, INPUT_SIZE, CHANNEL_ORDER);
+    const ort: any = (window as any).ort;
+    const input = new ort.Tensor('float32', chw, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+    const feeds: Record<string, any> = {};
+    const inName = session.inputNames?.[0] || 'data';
+    feeds[inName] = input;
+
+    const results = await session.run(feeds);
+    const outName = session.outputNames?.[0] || Object.keys(results)[0];
+    const output = results[outName];
+    const feat = output?.data as Float32Array | undefined;
+    if (!feat) return null;
+
+    // L2 normalize
+    let sum = 0;
+    for (let i = 0; i < feat.length; i++) sum += feat[i] * feat[i];
+    const norm = Math.sqrt(sum) || 1;
+    const emb = new Float32Array(feat.length);
+    for (let i = 0; i < feat.length; i++) emb[i] = feat[i] / norm;
+    return emb;
+  } catch {
+    return null;
   }
-  // L2 normalize
-  let norm = Math.sqrt(vec.reduce((s, v) => s + v * v, 0)) || 1;
-  const emb = new Float32Array(vec.map(v => v / norm));
-  return emb;
-}
-
-export async function countFaces(file: File): Promise<number> {
-  if (typeof window === 'undefined') return 0;
-  await ensureFaceLandmarker();
-  if (!landmarker) return 0;
-  const bitmap = await imageBitmapFromFile(file);
-  const result = landmarker.detect(bitmap as any);
-  // @ts-ignore
-  const faces = result?.faceLandmarks as { x: number; y: number; z?: number }[][] | undefined;
-  return Array.isArray(faces) ? faces.length : 0;
 }
 
 export function cosineSimilarity(a: FaceEmbedding, b: FaceEmbedding): number {
@@ -98,74 +189,4 @@ export function cosineSimilarity(a: FaceEmbedding, b: FaceEmbedding): number {
   for (let i = 0; i < len; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
   const denom = Math.sqrt(na) * Math.sqrt(nb) || 1;
   return dot / denom;
-}
-
-// Lightweight liveness: detect one blink + slight head/pose movement within duration
-export async function checkLiveness(videoEl: HTMLVideoElement, opts?: { durationMs?: number; moveThreshold?: number; blinkThreshold?: number }): Promise<{ ok: boolean; reason?: string }> {
-  if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
-  await ensureFaceLandmarker();
-  if (!landmarker) return { ok: false, reason: 'no-landmarker' };
-
-  const durationMs = opts?.durationMs ?? 6000;
-  const moveThreshold = opts?.moveThreshold ?? 0.02; // normalized move
-  const blinkThresh = opts?.blinkThreshold ?? 0.5;   // blendshape score
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return { ok: false, reason: 'no-canvas' };
-
-  let start = performance.now();
-  let blinked = false;
-  let moved = false;
-  let lastCenter: {x:number;y:number}|null = null;
-  let lastBlinkScore = 0;
-
-  return new Promise((resolve) => {
-    const step = () => {
-      const now = performance.now();
-      if (now - start > durationMs) {
-        resolve({ ok: blinked && moved, reason: !blinked ? 'no-blink' : (!moved ? 'no-move' : undefined) });
-        return;
-      }
-      const vw = videoEl.videoWidth || 640;
-      const vh = videoEl.videoHeight || 480;
-      canvas.width = vw; canvas.height = vh;
-      try {
-        ctx.drawImage(videoEl, 0, 0, vw, vh);
-        // Detect on canvas directly
-        const result = landmarker.detect(canvas as any);
-        // @ts-ignore
-        const faces = result?.faceLandmarks as { x: number; y: number; z?: number }[][] | undefined;
-        // @ts-ignore
-        const blends = result?.faceBlendshapes as { categories: { categoryName: string; score: number }[] }[] | undefined;
-        if (faces && faces.length > 0) {
-          const pts = faces[0];
-          // center
-          let mx = 0, my = 0;
-          for (const p of pts) { mx += p.x; my += p.y; }
-          mx /= pts.length; my /= pts.length;
-          const center = { x: mx, y: my };
-          if (lastCenter) {
-            const dx = center.x - lastCenter.x;
-            const dy = center.y - lastCenter.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist > moveThreshold) moved = true;
-          }
-          lastCenter = center;
-
-          if (blends && blends[0]?.categories) {
-            const cat = blends[0].categories;
-            const eyeBlinkL = cat.find(c => c.categoryName.toLowerCase().includes('eyeblinkleft'))?.score ?? 0;
-            const eyeBlinkR = cat.find(c => c.categoryName.toLowerCase().includes('eyeblinkright'))?.score ?? 0;
-            const blinkScore = Math.max(eyeBlinkL, eyeBlinkR);
-            // detect transition high after low (simple blink event)
-            if (blinkScore >= blinkThresh && lastBlinkScore < 0.2) blinked = true;
-            lastBlinkScore = blinkScore;
-          }
-        }
-      } catch {}
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  });
 }
