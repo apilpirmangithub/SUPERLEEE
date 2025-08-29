@@ -444,6 +444,11 @@ AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleButtonClick = useCallback((buttonText: string) => {
+    if (buttonText === "Register IP") {
+      // Start register flow by asking for file directly (no chat prompt)
+      fileInputRef.current?.click();
+      return;
+    }
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
     } else if (buttonText === "Continue Registration") {
