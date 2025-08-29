@@ -1,0 +1,172 @@
+import OpenAI from "openai";
+
+export const runtime = "nodejs";
+
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+
+
+const clip = (s: string, max = 280) =>
+  (s ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+const ALLOWED = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_BYTES = 6 * 1024 * 1024; // 6MB
+
+function extractJsonObject(text: string): any | null {
+  if (!text) return null;
+  // Try direct parse
+  try { return JSON.parse(text); } catch {}
+  // Code fence ```json ... ```
+  const fencedJson = text.match(/```json\s*([\s\S]*?)```/i);
+  if (fencedJson) {
+    try { return JSON.parse(fencedJson[1]); } catch {}
+  }
+  // Any code fence ``` ... ```
+  const fenced = text.match(/```\s*([\s\S]*?)```/);
+  if (fenced) {
+    try { return JSON.parse(fenced[1]); } catch {}
+  }
+  // Find first balanced JSON object
+  const s = String(text);
+  const start = s.indexOf('{');
+  if (start >= 0) {
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let i = start; i < s.length; i++) {
+      const ch = s[i];
+      if (inStr) {
+        if (esc) { esc = false; }
+        else if (ch === '\\') { esc = true; }
+        else if (ch === '"') { inStr = false; }
+      } else {
+        if (ch === '"') inStr = true;
+        else if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) {
+            const candidate = s.slice(start, i + 1);
+            try { return JSON.parse(candidate); } catch {}
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Key-value fallback parsing
+  const lower = text.toLowerCase();
+  const kv = { } as any;
+  const mStatus = lower.match(/status\s*[:\-]\s*([\s\S]*?)(?:\n|,|$)/);
+  const mRisk = lower.match(/risk\s*[:\-]\s*([\s\S]*?)(?:\n|,|$)/);
+  const mTol = lower.match(/tolerance\s*[:\-]\s*([\s\S]*?)(?:\n|,|$)/);
+  if (mStatus) kv.status = mStatus[1].trim();
+  if (mRisk) kv.risk = mRisk[1].trim();
+  if (mTol) kv.tolerance = mTol[1].trim();
+  if (kv.status || kv.risk || kv.tolerance) return kv;
+  return null;
+}
+
+export async function POST(req: Request) {
+  try {
+    const form = await req.formData();
+    let file: File | null = null;
+    try {
+      file = (form as any).get?.("file") as File | null;
+    } catch {}
+    if (!file) {
+      try {
+        for (const [key, value] of ((form as any).entries?.() || [])) {
+          if (key === "file" && value) { file = value as File; break; }
+        }
+      } catch {}
+    }
+    if (!file) return Response.json({ error: "No file found." }, { status: 400 });
+    if (!ALLOWED.has(file.type)) return Response.json({ error: "File must be PNG/JPEG/WEBP." }, { status: 415 });
+    if (file.size > MAX_BYTES)
+      return Response.json({ error: "File too big! Max 6MB." }, { status: 413 });
+
+    const ab = await file.arrayBuffer();
+    const b64 = Buffer.from(ab).toString("base64");
+    const dataUrl = `data:${file.type};base64,${b64}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are an IP compliance assistant. Decide if an image is safe to register as IP.
+Return ONLY a raw JSON object (no backticks, no markdown, no explanations) with keys EXACTLY:
+{
+  "status": "...",
+  "risk": "...",
+  "tolerance": "..."
+}
+Rules:
+- Be conservative by default. If unsure, set risk to "Medium" and tolerance to a cautionary message.
+- Only use tolerance starting with "Good to register" when you are confident and risk is "Low".
+- Evaluate: logos/brands, copyrighted characters, watermarks, visible text, faces/identity, tracing/derivatives, NSFW/illegal.
+- Keep each field ≤ 280 chars. No extra fields, no prose, no code fences.
+`
+        },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Check if this image is safe to register as IP. Return only the JSON object defined (no backticks/markdown)." },
+            { type: "image_url", image_url: { url: dataUrl } }
+          ] as any
+        }
+      ],
+      temperature: 0.1
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let parsed: { status?: string; risk?: string; tolerance?: string } = {};
+    const extracted = extractJsonObject(raw);
+    if (extracted && typeof extracted === 'object') {
+      parsed = extracted as any;
+    } else {
+      parsed = {
+        status: clip(raw),
+        risk: "Not valid JSON, verify manually",
+        tolerance: "Proceed with caution, verify manually"
+      };
+    }
+
+    let status = clip(parsed.status ?? "");
+    let risk = clip(parsed.risk ?? "");
+    let tolerance = clip(parsed.tolerance ?? "");
+
+    const strict = (process.env.IP_STATUS_STRICT ?? 'true') === 'true';
+    if (strict) {
+      const r = (risk || '').toLowerCase();
+      const t = (tolerance || '').toLowerCase();
+      const uncertain = r.includes('unknown') || r.includes('unable') || r.includes('unsure') || r.includes('cannot') || r.trim() === '';
+
+      if (uncertain) {
+        risk = 'Medium';
+        tolerance = 'Proceed with caution, verify manually';
+      }
+      if (t.startsWith('good to register') && !r.includes('low')) {
+        tolerance = 'Proceed with caution';
+      }
+      if (!tolerance) tolerance = 'Proceed with caution';
+      if (!status) status = 'Automated assessment completed';
+    } else {
+      if (!status) status = 'Assessment by OpenAI';
+      if (!risk) risk = 'Unknown';
+      if (!tolerance) tolerance = 'Proceed with caution';
+    }
+
+    const formatted =
+`Status: ${status}
+Risk: ${risk}
+Tolerance: ${tolerance}`;
+
+    return Response.json({ result: formatted });
+  } catch (err: any) {
+    console.error(err);
+    return Response.json({ error: "Something went wrong." }, { status: 500 });
+  }
+}
