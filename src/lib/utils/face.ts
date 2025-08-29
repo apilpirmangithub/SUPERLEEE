@@ -16,30 +16,29 @@ async function ensureFaceLandmarker() {
 
   loadingPromise = (async () => {
     if (typeof window === 'undefined') return;
-    // Dynamic ESM import from CDN (works in modern browsers)
-    vision = await import(/* @vite-ignore */ /* webpackIgnore: true */ MODULE_URL + "/vision_bundle.mjs");
-    const { FilesetResolver, FaceLandmarker } = vision as any;
-    const filesetResolver = await FilesetResolver.forVisionTasks(WASM_BASE);
-    landmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: { modelAssetPath: MODULE_URL + "/face_landmarker.task" },
-      runningMode: "IMAGE",
-      numFaces: Math.max(1, Math.min(5, isNaN(MAX_FACES) ? 2 : MAX_FACES)),
-      outputFaceBlendshapes: true,
-      outputFacialTransformationMatrixes: true,
-    });
+    try {
+      // Dynamic ESM import from CDN (works in modern browsers)
+      vision = await import(/* @vite-ignore */ /* webpackIgnore: true */ MODULE_URL + "/vision_bundle.mjs");
+      const { FilesetResolver, FaceLandmarker } = vision as any;
+      const filesetResolver = await FilesetResolver.forVisionTasks(WASM_BASE);
+      landmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: { modelAssetPath: MODULE_URL + "/face_landmarker.task" },
+        runningMode: "IMAGE",
+        numFaces: Math.max(1, Math.min(5, isNaN(MAX_FACES) ? 2 : MAX_FACES)),
+        outputFaceBlendshapes: true,
+        outputFacialTransformationMatrixes: true,
+      });
+    } catch (e) {
+      console.warn('FaceLandmarker init failed, falling back', e);
+      landmarker = null;
+    }
   })();
 
   await loadingPromise;
 }
 
 async function imageBitmapFromFile(file: File): Promise<ImageBitmap> {
-  const blobUrl = URL.createObjectURL(file);
-  try {
-    const img = await fetch(blobUrl).then(r => r.blob());
-    return await createImageBitmap(img);
-  } finally {
-    URL.revokeObjectURL(blobUrl);
-  }
+  return await createImageBitmap(file);
 }
 
 export type FaceEmbedding = Float32Array;
