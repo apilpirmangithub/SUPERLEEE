@@ -9,14 +9,20 @@ export function useChatAgent() {
   const [awaitingFile, setAwaitingFile] = useState<boolean>(false);
   const [awaitingInput, setAwaitingInput] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [history, setHistory] = useState<Array<{ id: string; title: string; lastMessage: string; timestamp: number; messageCount: number; messages: Message[] }>>([]);
 
-  // Load messages from localStorage on mount
+  // Load messages and history from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("superleeMessages");
       if (saved) {
         const loadedMessages = JSON.parse(saved);
         setMessages(loadedMessages);
+      }
+      const savedHistory = localStorage.getItem("superleeHistory");
+      if (savedHistory) {
+        const loadedHistory = JSON.parse(savedHistory);
+        if (Array.isArray(loadedHistory)) setHistory(loadedHistory);
       }
     } catch {
       // Ignore errors, start with empty chat
@@ -31,6 +37,13 @@ export function useChatAgent() {
       // Ignore errors
     }
   }, [messages]);
+
+  // Helper to persist history
+  const persistHistory = useCallback((items: typeof history) => {
+    try {
+      localStorage.setItem("superleeHistory", JSON.stringify(items));
+    } catch {}
+  }, [history]);
 
   const showGreeting = useCallback(() => {
     const greeting = superleeEngine.getGreeting();
@@ -144,6 +157,28 @@ export function useChatAgent() {
   }, [addMessage, simulateTyping]);
 
   const newChat = useCallback(() => {
+    // Snapshot current session into history (if it has any user message)
+    try {
+      if (messages.length > 0) {
+        const userMsgs = messages.filter(m => m.role === "you");
+        if (userMsgs.length > 0) {
+          const firstUser = userMsgs[0];
+          const lastMsg = messages[messages.length - 1];
+          const item = {
+            id: `sess-${Date.now()}`,
+            title: (firstUser.text || "Session").slice(0, 30),
+            lastMessage: (lastMsg.text || "").slice(0, 80),
+            timestamp: firstUser.ts || Date.now(),
+            messageCount: messages.length,
+            messages: messages,
+          };
+          const newHistory = [item, ...history].slice(0, 50);
+          setHistory(newHistory);
+          persistHistory(newHistory);
+        }
+      }
+    } catch {}
+
     superleeEngine.reset();
     setMessages([]);
     setCurrentPlan(null);
@@ -152,15 +187,28 @@ export function useChatAgent() {
     setAwaitingInput(null);
     setIsTyping(false);
     try {
-      localStorage.removeItem("superleeMessages");
-    } catch {
-      // Ignore errors
-    }
-  }, []);
+      localStorage.setItem("superleeMessages", JSON.stringify([]));
+    } catch {}
+  }, [messages, history, persistHistory]);
 
   const getEngineFile = useCallback(() => {
     return superleeEngine.getContext().registerData?.file;
   }, []);
+
+  const openSession = useCallback((id: string) => {
+    const sess = history.find(h => h.id === id);
+    if (!sess) return;
+    superleeEngine.reset();
+    setMessages(sess.messages || []);
+    setCurrentPlan(null);
+    setStatus("");
+    setAwaitingFile(false);
+    setAwaitingInput(null);
+    setIsTyping(false);
+    try {
+      localStorage.setItem("superleeMessages", JSON.stringify(sess.messages || []));
+    } catch {}
+  }, [history]);
 
   return {
     messages,
@@ -169,6 +217,7 @@ export function useChatAgent() {
     awaitingFile,
     awaitingInput,
     isTyping,
+    history,
     addMessage,
     addCompleteMessage,
     updateLastMessage,
@@ -176,6 +225,7 @@ export function useChatAgent() {
     clearPlan,
     updateStatus,
     newChat,
+    openSession,
     getEngineFile,
   };
 }

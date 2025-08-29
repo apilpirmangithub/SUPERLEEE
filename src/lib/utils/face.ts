@@ -183,6 +183,106 @@ export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null
   }
 }
 
+export async function countFaces(file: File): Promise<number> {
+  if (typeof window === 'undefined') return 0;
+  try {
+    // @ts-ignore
+    const hasFD = (window as any).FaceDetector != null;
+    const bitmap = await bitmapFromFile(file);
+    if (hasFD) {
+      try {
+        // @ts-ignore
+        const detector = new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+        const faces = await detector.detect(bitmap as any);
+        return Array.isArray(faces) ? faces.length : 0;
+      } catch {}
+    }
+    const box = await detectFaceBox(bitmap);
+    return box ? 1 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export type LivenessResult = { ok: true } | { ok: false; reason: string };
+
+export async function checkLiveness(video: HTMLVideoElement, opts?: { durationMs?: number; minMoves?: number }): Promise<LivenessResult> {
+  if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
+  const durationMs = Math.max(2000, Math.min(15000, opts?.durationMs ?? 6000));
+  const minMoves = Math.max(1, Math.min(10, opts?.minMoves ?? 2));
+
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { ok: false, reason: 'no-canvas' };
+
+  // @ts-ignore
+  const hasFD = (window as any).FaceDetector != null;
+  // @ts-ignore
+  const detector = hasFD ? new (window as any).FaceDetector({ fastMode: true, maxDetectedFaces: 1 }) : null;
+
+  let lastCenter: { x: number; y: number } | null = null;
+  let motionBursts = 0;
+  let samples = 0;
+  let lastFrame: Uint8ClampedArray | null = null;
+
+  const sample = async (): Promise<void> => {
+    ctx.drawImage(video, 0, 0, w, h);
+    const img = ctx.getImageData(0, 0, w, h);
+
+    let roi = { x: 0, y: 0, width: w, height: h } as { x: number; y: number; width: number; height: number };
+    if (detector) {
+      try {
+        const faces = await detector.detect(canvas as unknown as any);
+        if (faces && faces[0]) {
+          const b = faces[0].boundingBox as DOMRectReadOnly;
+          roi = { x: Math.max(0, Math.floor(b.x)), y: Math.max(0, Math.floor(b.y)), width: Math.floor(b.width), height: Math.floor(b.height) };
+        }
+      } catch {}
+    }
+
+    const center = { x: roi.x + roi.width / 2, y: roi.y + roi.height / 2 };
+    if (lastCenter) {
+      const dx = center.x - lastCenter.x;
+      const dy = center.y - lastCenter.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > Math.max(4, Math.min(w, h) * 0.01)) motionBursts++;
+    }
+    lastCenter = center;
+
+    let motion = 0;
+    if (lastFrame) {
+      const stride = 4;
+      const x0 = Math.max(0, roi.x), y0 = Math.max(0, roi.y);
+      const x1 = Math.min(w, roi.x + roi.width), y1 = Math.min(h, roi.y + roi.height);
+      for (let y = y0; y < y1; y += 2) {
+        for (let x = x0; x < x1; x += 2) {
+          const idx = (y * w + x) * stride;
+          const d = Math.abs(img.data[idx] - (lastFrame as Uint8ClampedArray)[idx]) + Math.abs(img.data[idx+1] - (lastFrame as Uint8ClampedArray)[idx+1]) + Math.abs(img.data[idx+2] - (lastFrame as Uint8ClampedArray)[idx+2]);
+          if (d > 45) motion++;
+        }
+      }
+    }
+    lastFrame = img.data;
+
+    if (motion > (roi.width * roi.height) / (2*2*120)) motionBursts++;
+
+    samples++;
+  };
+
+  const start = Date.now();
+  while (Date.now() - start < durationMs) {
+    await sample();
+    await new Promise(r => setTimeout(r, 220));
+  }
+
+  if (samples < 3) return { ok: false, reason: 'not-enough-samples' };
+  if (motionBursts >= minMoves) return { ok: true };
+  return { ok: false, reason: 'no-motion' };
+}
+
 export function cosineSimilarity(a: FaceEmbedding, b: FaceEmbedding): number {
   const len = Math.min(a.length, b.length);
   let dot = 0, na = 0, nb = 0;
