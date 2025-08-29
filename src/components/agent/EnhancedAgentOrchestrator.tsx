@@ -41,6 +41,32 @@ export function EnhancedAgentOrchestrator() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
 
+  const handleNewChat = useCallback(() => {
+    chatAgent.newChat();
+    try { fileUpload.removeFile(); } catch {}
+    setAnalyzedFile(null);
+    setAiDetectionResult(null);
+    setReferenceFile(null);
+    setAwaitingIdentity(false);
+    setShowCamera(false);
+    setLastDHash(null);
+    setDupCheck(null);
+    setToast(null);
+  }, [chatAgent, fileUpload]);
+
+  const handleOpenSession = useCallback((id: string) => {
+    chatAgent.openSession(id);
+    try { fileUpload.removeFile(); } catch {}
+    setAnalyzedFile(null);
+    setAiDetectionResult(null);
+    setReferenceFile(null);
+    setAwaitingIdentity(false);
+    setShowCamera(false);
+    setLastDHash(null);
+    setDupCheck(null);
+    setToast(null);
+  }, [chatAgent, fileUpload]);
+
   const explorerBase = storyAeneid.blockExplorers?.default.url || "https://aeneid.storyscan.xyz";
 
   // Auto-scroll to bottom when messages change
@@ -563,9 +589,9 @@ Thank you.`
         <div className="hidden lg:block">
           <HistorySidebar
             messages={chatAgent.messages}
-            onNewChat={chatAgent.newChat}
+            onNewChat={handleNewChat}
             chatHistory={chatAgent.history?.map(h => ({ id: h.id, title: h.title, lastMessage: h.lastMessage, timestamp: h.timestamp, messageCount: h.messageCount }))}
-            onOpenSession={chatAgent.openSession}
+            onOpenSession={handleOpenSession}
           />
         </div>
 
@@ -585,7 +611,7 @@ Thank you.`
 
               {/* Mobile menu button for history */}
               <button
-                onClick={chatAgent.newChat}
+                onClick={handleNewChat}
                 className="lg:hidden p-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors"
                 title="New Chat"
               >
