@@ -4,6 +4,8 @@ import type { Message } from "@/types/agents";
 interface HistorySidebarProps {
   messages: Message[];
   onNewChat: () => void;
+  history?: Array<{ id: string; title: string; lastMessage: string; timestamp: number; messageCount: number }>;
+  onOpenSession?: (id: string) => void;
 }
 
 interface ChatSession {
@@ -17,9 +19,23 @@ interface ChatSession {
 export function HistorySidebar({ messages, onNewChat }: HistorySidebarProps) {
   // Group messages into sessions based on conversation flow
   const createChatSessions = (): ChatSession[] => {
-    if (messages.length === 0) return [];
-
     const sessions: ChatSession[] = [];
+
+    // Add saved sessions from history first (most recent already first if provided that way)
+    if (history && history.length > 0) {
+      for (const h of history) {
+        sessions.push({
+          id: h.id,
+          title: h.title,
+          lastMessage: h.lastMessage,
+          timestamp: h.timestamp,
+          messageCount: h.messageCount,
+        });
+      }
+    }
+
+    // Derive a current session preview from in-memory messages (unsaved)
+    if (messages.length === 0) return sessions;
     let currentSession: Message[] = [];
     let sessionCounter = 1;
 
@@ -87,7 +103,7 @@ export function HistorySidebar({ messages, onNewChat }: HistorySidebarProps) {
       ) : (
         <ul className="space-y-1.5">
           {chatSessions.map((session) => (
-            <li key={session.id} className="hover:bg-white/5 rounded-lg p-2 -m-2 transition-colors cursor-pointer group">
+            <li key={session.id} className="hover:bg-white/5 rounded-lg p-2 -m-2 transition-colors cursor-pointer group" onClick={() => onOpenSession?.(session.id)}>
               <div className="text-xs font-medium text-white line-clamp-2 mb-1">
                 {session.title}
               </div>
