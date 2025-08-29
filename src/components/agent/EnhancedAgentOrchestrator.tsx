@@ -19,6 +19,7 @@ import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
 import { checkDuplicateQuick, checkDuplicateByImageHash } from "@/lib/utils/registry";
+import { getFaceEmbedding, cosineSimilarity, countFaces } from "@/lib/utils/face";
 import type { Hex } from "viem";
 
 export function EnhancedAgentOrchestrator() {
@@ -468,6 +469,41 @@ Thank you.`
     if (!referenceFile) return;
     try {
       chatAgent.updateStatus('Verifying identity with camera photo...');
+
+      // Multi-face check on capture
+      try {
+        const faces = await countFaces(capture);
+        if (faces > 1) {
+          setToast('Multiple faces detected ❌');
+          chatAgent.addMessage('agent', 'Multiple faces detected in the photo. Please retake with only one face clearly visible.', ['Take Photo', 'Submit for Review']);
+          return;
+        }
+      } catch {}
+
+      // Embedding comparison (primary)
+      const [refEmb, capEmb] = await Promise.all([
+        getFaceEmbedding(referenceFile),
+        getFaceEmbedding(capture)
+      ]);
+
+      const simTh = parseFloat(process.env.NEXT_PUBLIC_FACE_SIM_THRESHOLD || '0.82');
+
+      if (refEmb && capEmb) {
+        const sim = cosineSimilarity(refEmb, capEmb);
+        if (sim >= simTh) {
+          setAwaitingIdentity(false);
+          setToast('Identity verified ✅');
+          chatAgent.addMessage('agent', `Identity verified (similarity ${sim.toFixed(3)} ≥ ${simTh}). Proceeding to registration.`);
+          chatAgent.processPrompt('Continue Registration', referenceFile, aiDetectionResult);
+          return;
+        }
+        setToast('Identity mismatch ❌');
+        chatAgent.addMessage('agent', `Identity check failed (similarity ${sim.toFixed(3)} < ${simTh}). Please retake photo or upload proof.`);
+        chatAgent.addMessage('agent', 'You can take another photo or submit for review.', ['Take Photo', 'Submit for Review']);
+        return;
+      }
+
+      // Fallback: perceptual dHash if face embedding not available
       const hashSize = Number.parseInt(process.env.NEXT_PUBLIC_SAFE_IMAGE_DHASH_SIZE || '8', 10);
       const cropEnv = parseFloat(process.env.NEXT_PUBLIC_SAFE_IMAGE_CENTER_CROP || '0.7');
       const crop = Math.max(0.4, Math.min(0.95, isNaN(cropEnv) ? 0.7 : cropEnv));
