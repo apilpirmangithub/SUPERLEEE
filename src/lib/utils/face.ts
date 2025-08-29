@@ -99,3 +99,73 @@ export function cosineSimilarity(a: FaceEmbedding, b: FaceEmbedding): number {
   const denom = Math.sqrt(na) * Math.sqrt(nb) || 1;
   return dot / denom;
 }
+
+// Lightweight liveness: detect one blink + slight head/pose movement within duration
+export async function checkLiveness(videoEl: HTMLVideoElement, opts?: { durationMs?: number; moveThreshold?: number; blinkThreshold?: number }): Promise<{ ok: boolean; reason?: string }> {
+  if (typeof window === 'undefined') return { ok: false, reason: 'no-window' };
+  await ensureFaceLandmarker();
+  if (!landmarker) return { ok: false, reason: 'no-landmarker' };
+
+  const durationMs = opts?.durationMs ?? 6000;
+  const moveThreshold = opts?.moveThreshold ?? 0.02; // normalized move
+  const blinkThresh = opts?.blinkThreshold ?? 0.5;   // blendshape score
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return { ok: false, reason: 'no-canvas' };
+
+  let start = performance.now();
+  let blinked = false;
+  let moved = false;
+  let lastCenter: {x:number;y:number}|null = null;
+  let lastBlinkScore = 0;
+
+  return new Promise((resolve) => {
+    const step = () => {
+      const now = performance.now();
+      if (now - start > durationMs) {
+        resolve({ ok: blinked && moved, reason: !blinked ? 'no-blink' : (!moved ? 'no-move' : undefined) });
+        return;
+      }
+      const vw = videoEl.videoWidth || 640;
+      const vh = videoEl.videoHeight || 480;
+      canvas.width = vw; canvas.height = vh;
+      try {
+        ctx.drawImage(videoEl, 0, 0, vw, vh);
+        // Detect on canvas directly
+        const result = landmarker.detect(canvas as any);
+        // @ts-ignore
+        const faces = result?.faceLandmarks as { x: number; y: number; z?: number }[][] | undefined;
+        // @ts-ignore
+        const blends = result?.faceBlendshapes as { categories: { categoryName: string; score: number }[] }[] | undefined;
+        if (faces && faces.length > 0) {
+          const pts = faces[0];
+          // center
+          let mx = 0, my = 0;
+          for (const p of pts) { mx += p.x; my += p.y; }
+          mx /= pts.length; my /= pts.length;
+          const center = { x: mx, y: my };
+          if (lastCenter) {
+            const dx = center.x - lastCenter.x;
+            const dy = center.y - lastCenter.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > moveThreshold) moved = true;
+          }
+          lastCenter = center;
+
+          if (blends && blends[0]?.categories) {
+            const cat = blends[0].categories;
+            const eyeBlinkL = cat.find(c => c.categoryName.toLowerCase().includes('eyeblinkleft'))?.score ?? 0;
+            const eyeBlinkR = cat.find(c => c.categoryName.toLowerCase().includes('eyeblinkright'))?.score ?? 0;
+            const blinkScore = Math.max(eyeBlinkL, eyeBlinkR);
+            // detect transition high after low (simple blink event)
+            if (blinkScore >= blinkThresh && lastBlinkScore < 0.2) blinked = true;
+            lastBlinkScore = blinkScore;
+          }
+        }
+      } catch {}
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}

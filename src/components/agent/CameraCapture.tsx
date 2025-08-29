@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { checkLiveness } from "@/lib/utils/face";
 
 interface CameraCaptureProps {
   open: boolean;
@@ -14,6 +15,8 @@ export function CameraCapture({ open, onClose, onCapture, onFallback }: CameraCa
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const [isLiveness, setIsLiveness] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<string>("");
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -81,6 +84,27 @@ export function CameraCapture({ open, onClose, onCapture, onFallback }: CameraCa
     }, "image/jpeg", 0.92);
   };
 
+  const handleLiveness = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      setIsLiveness(true);
+      setLiveStatus("Please blink and slightly move your head…");
+      const res = await checkLiveness(video, { durationMs: 6500 });
+      if (res.ok) {
+        setLiveStatus("Liveness passed ✅ capturing…");
+        await handleCapture();
+      } else {
+        setLiveStatus(`Liveness failed (${res.reason}). Try again.`);
+      }
+    } catch (e) {
+      setLiveStatus("Liveness error");
+    } finally {
+      setIsLiveness(false);
+      setTimeout(() => setLiveStatus(""), 2500);
+    }
+  }, []);
+
   if (!open) return null;
 
   return (
@@ -100,11 +124,13 @@ export function CameraCapture({ open, onClose, onCapture, onFallback }: CameraCa
         <div className="mt-3 flex items-center justify-between gap-2">
           <button onClick={onClose} className="px-3 py-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-white text-sm">Cancel</button>
           <div className="flex items-center gap-2">
+            {liveStatus && <div className="text-xs text-white/80 mr-2">{liveStatus}</div>}
             <button
               onClick={() => onFallback?.()}
               className="px-3 py-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-white text-sm"
               title="Use system camera picker"
             >System Picker</button>
+            <button onClick={handleLiveness} disabled={isStarting || isLiveness} className="px-3 py-2 rounded-lg bg-emerald-500/90 hover:bg-emerald-400 disabled:opacity-60 text-white text-sm">Start Liveness</button>
             <button onClick={handleCapture} className="px-3 py-2 rounded-lg bg-sky-500/90 hover:bg-sky-400 text-white text-sm">Take Photo</button>
           </div>
         </div>
