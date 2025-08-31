@@ -230,6 +230,11 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get('q') || sp.get('search');
+      setQuery(q);
+    }
     if (canQuery) loadData(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canQuery]);
