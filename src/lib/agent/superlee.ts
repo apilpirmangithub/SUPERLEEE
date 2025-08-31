@@ -311,24 +311,17 @@ export class SuperleeEngine {
     };
   }
 
-  private handleFileUpload(file: File, aiResult?: { isAI: boolean; confidence: number }): SuperleeResponse {
+  private handleFileUpload(file: File): SuperleeResponse {
     if (!this.context.registerData) {
       this.context.registerData = {};
     }
 
     this.context.registerData.file = file;
-
-    if (aiResult) {
-      // AI detection sudah selesai, langsung proses
-      return this.handleAIAnalysisComplete(aiResult);
-    } else {
-      // File baru diupload, tunggu AI detection
-      this.context.state = "register_analyzing_ai";
-      return {
-        type: "message",
-        text: "📁 File uploaded successfully!\n\n🔍 Analyzing image for AI detection... Please wait."
-      };
-    }
+    this.context.state = "register_awaiting_name";
+    return {
+      type: "awaiting_input",
+      prompt: "Perfect! What should we call this IP? (Enter a title/name)"
+    };
   }
 
   private handleAIAnalysisComplete(aiResult: { isAI: boolean; confidence: number }): SuperleeResponse {
