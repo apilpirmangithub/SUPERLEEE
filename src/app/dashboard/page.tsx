@@ -26,11 +26,12 @@ const START_BLOCK = BigInt(process.env.NEXT_PUBLIC_SPG_START_BLOCK ?? "0");
 const IFACE_ENUMERABLE = "0x780e9d63";
 
 function ipfsToHttps(url?: string) {
+  const gw = (process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io").replace(/\/$/, "");
   if (!url) return "";
-  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
+  if (url.startsWith("ipfs://")) return `${gw}/ipfs/${url.slice(7)}`;
   const m = url.match(/\/ipfs\/([^/?#]+)/i);
-  if (m?.[1]) return `https://ipfs.io/ipfs/${m[1]}`;
-  if (/^(baf|Qm)[a-zA-Z0-9]+$/.test(url)) return `https://ipfs.io/ipfs/${url}`;
+  if (m?.[1]) return `${gw}/ipfs/${m[1]}`;
+  if (/^(baf|Qm)[a-zA-Z0-9]+$/.test(url)) return `${gw}/ipfs/${url}`;
   return url;
 }
 
