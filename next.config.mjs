@@ -64,24 +64,35 @@ const nextConfig = {
 
   // Webpack optimizations
   webpack: (config, { isServer }) => {
-    // Optimize bundle size
-    config.optimization.splitChunks = {
-      chunks: 'all',
-      cacheGroups: {
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          chunks: 'all',
-        },
-      },
-    };
-
-    // Reduce bundle size for client
+    // Only tweak client-side chunks to avoid SSR bundling issues
     if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+        },
+      };
+
+      // Reduce bundle size for client and polyfill/ignore node-only modules
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
       };
+
+      // Stub optional node/dev-only deps pulled by some web3 libs
+      config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        'pino-pretty': false,
+        encoding: false,
+      };
+    } else {
+      // Ensure server build does not attempt to bundle browser-specific libs into a shared vendors chunk
+      // Keep server optimization defaults from Next.js
+      config.optimization.splitChunks = config.optimization.splitChunks || undefined;
     }
 
     return config;
