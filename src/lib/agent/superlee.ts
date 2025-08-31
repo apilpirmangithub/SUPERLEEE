@@ -323,7 +323,7 @@ export class SuperleeEngine {
   }
 
   private async handleUnknownCommand(message: string): Promise<SuperleeResponse> {
-    const fallbackText = "Saya tidak paham. Saya fokus membantu registrasi IP. Ingin mulai registrasi?";
+    const fallbackText = "Saya tidak paham. Saya fokus membantu registrasi IP. Ingin mulai registrasi?\nPanduan: https://docs.story.foundation/";
 
     if (this.context.aiEnabled) {
       const smartResponse = await this.generateSmartResponse(
