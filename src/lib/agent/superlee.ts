@@ -165,7 +165,7 @@ export class SuperleeEngine {
     };
   }
 
-  processMessage(message: string, file?: File, aiDetectionResult?: { isAI: boolean; confidence: number }): SuperleeResponse {
+  processMessage(message: string, file?: File): SuperleeResponse {
     const cleaned = message.trim().toLowerCase();
 
     // Easter eggs only work in "awaiting_sup" state (before SUP is typed)
