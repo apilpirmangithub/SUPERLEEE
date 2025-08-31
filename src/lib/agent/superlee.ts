@@ -169,10 +169,27 @@ export class SuperleeEngine {
     };
   }
 
-  getGreeting(): SuperleeResponse {
+  async getGreeting(): Promise<SuperleeResponse> {
+    let greetingText = "Hey 👋, what do you want to do today? Choose one:";
+
+    if (this.context.aiEnabled) {
+      try {
+        const aiGreeting = await generateContextualResponse(
+          "User just started conversation with SuperLee",
+          "Initial greeting - be welcoming and explain what SuperLee can do",
+          "greeting"
+        );
+        if (aiGreeting) {
+          greetingText = aiGreeting;
+        }
+      } catch (error) {
+        console.error("AI greeting failed:", error);
+      }
+    }
+
     return {
       type: "message",
-      text: "Hey 👋, what do you want to do today? Choose one:",
+      text: greetingText,
       buttons: ["Register IP", "Swap Token"]
     };
   }
