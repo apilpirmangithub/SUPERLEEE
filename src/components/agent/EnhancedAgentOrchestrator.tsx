@@ -287,31 +287,7 @@ export function EnhancedAgentOrchestrator() {
 
     const plan = chatAgent.currentPlan;
 
-    if (plan.type === "swap" && plan.intent.kind === "swap") {
-      chatAgent.updateStatus("🔄 Executing swap...");
-
-      const result = await swapAgent.executeSwap(plan.intent);
-
-      if (result.success) {
-        const successMessage = `Swap success ✅
-From: ${plan.intent.tokenIn}
-To: ${plan.intent.tokenOut}
-Amount: ${plan.intent.amount}
-Tx: ${result.txHash}
-↗ View: ${explorerBase}/tx/${result.txHash}`;
-
-        chatAgent.addMessage("agent", successMessage);
-        setToast("Swap success ✅");
-      } else {
-        chatAgent.addMessage("agent", `Swap error: ${result.error}`);
-        setToast("Swap error ❌");
-      }
-      
-      chatAgent.clearPlan();
-      swapAgent.resetSwap();
-    }
-    
-    else if (plan.type === "register" && plan.intent.kind === "register") {
+    if (plan.type === "register" && plan.intent.kind === "register") {
       // Get file from engine context or fallback to analyzed file
       const fileToUse = chatAgent.getEngineFile() || analyzedFile;
 
