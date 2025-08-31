@@ -62,7 +62,7 @@ const RE_ADDR = /0x[a-fA-F0-9]{40}/;
 const RE_AMOUNT = /(\d[\d.,]*)/;
 
 /** ===== License Options ===== */
-function getLicenseOptions(aiDetected: boolean = false): string[] {
+function getLicenseOptions(): string[] {
   const options = [
     "Remix Allowed",
     "Commercial Use Allowed", 
