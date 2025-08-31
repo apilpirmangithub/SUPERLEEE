@@ -9,7 +9,7 @@ const Topbar = dynamic(() => import("@/components/Topbar"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "Superlee AI Agent",
-  description: "Swap via PiperX + Register IP on Story",
+  description: "Advanced IP registration assistant on Story",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7fafc" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
@@ -66,4 +66,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
