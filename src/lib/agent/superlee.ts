@@ -233,21 +233,30 @@ export class SuperleeEngine {
   private handleDescriptionInput(description: string): SuperleeResponse {
     if (!this.context.registerData) this.context.registerData = {};
     this.context.registerData.description = description.trim();
-    this.context.state = "register_awaiting_license";
 
-    const licenseOptions = getLicenseOptions();
+    // Skip license step: go straight to PlanBox with sensible default (can be changed there)
+    const defaultPil = (process.env.NEXT_PUBLIC_DEFAULT_PIL || 'commercial_remix').toLowerCase();
+    const pilType = defaultPil === 'open_use' ? 'open_use' : 'commercial_remix';
+    const license = pilType === 'open_use' ? 'cc0' : 'by';
+    this.context.registerData.pilType = pilType;
+    this.context.registerData.license = license;
+    this.context.state = 'register_ready';
 
-    let message = "Which license type would you like to choose?\n\n";
-    licenseOptions.forEach((option, index) => { message += `${index + 1}. ${option}\n`; });
+    const intent: RegisterIntent = {
+      kind: 'register',
+      title: this.context.registerData.name,
+      prompt: this.context.registerData.description,
+      license: license as any,
+      pilType: pilType as any
+    };
 
-    if (this.context.registerData.aiAnalysis) {
-      const analysis = this.context.registerData.aiAnalysis;
-      message += `\n📸 AI detected: ${analysis.detectedObjects?.join(', ') || 'various objects'}`;
-      if (analysis.style) message += `\n🎨 Style: ${analysis.style}`;
-      if (analysis.mood) message += `\n😊 Mood: ${analysis.mood}`;
-    }
+    const plan = [
+      `Name IP : "${this.context.registerData.name}"`,
+      `Description: "${this.context.registerData.description}"`,
+      `License: ${pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
+    ];
 
-    return { type: "message", text: message, buttons: licenseOptions };
+    return { type: 'plan', intent, plan };
   }
 
   private handleLicenseSelection(license: string): SuperleeResponse {
