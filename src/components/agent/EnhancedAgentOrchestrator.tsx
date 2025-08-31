@@ -426,7 +426,7 @@ License Type: ${result.licenseType}`;
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
     } else if (buttonText === "Continue Registration") {
-      chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined, aiDetectionResult);
+      chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
       setAwaitingIdentity(true);
