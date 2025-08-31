@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
-import { createHash } from "crypto";
 import { useStoryClient } from "@/lib/storyClient";
 import { compressImage } from "@/lib/utils/image";
 import { uploadFile, uploadJSON, extractCid, toHttps, toIpfsUri } from "@/lib/utils/ipfs";
@@ -36,7 +35,7 @@ export function useRegisterIPAgent() {
     }
   }, [chainId, switchChainAsync]);
 
-  const executeRegister = useCallback(async (intent: RegisterIntent, file: File, licenseSettings?: LicenseSettings) => {
+  const executeRegister = useCallback(async (intent: RegisterIntent, file: File, licenseSettings?: LicenseSettings, options?: { customTerms?: import("@/lib/license/terms").LicenseTermsData }) => {
     try {
       // Ensure we're on the right network
       await ensureAeneid();
@@ -131,7 +130,7 @@ export function useRegisterIPAgent() {
 
       // 7. Mint and register IP on Story Protocol with license terms
       const client = await getClient();
-      const licenseTermsData = createLicenseTerms(usedLicenseSettings);
+      const licenseTermsData = options?.customTerms ?? createLicenseTerms(usedLicenseSettings);
 
       const result = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
         spgNftContract: SPG_COLLECTION,

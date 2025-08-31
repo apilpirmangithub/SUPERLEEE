@@ -15,6 +15,8 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
+import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
@@ -37,9 +39,15 @@ export function EnhancedAgentOrchestrator() {
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [awaitingIdentity, setAwaitingIdentity] = useState<boolean>(false);
   const [dupCheck, setDupCheck] = useState<{ checked: boolean; found: boolean; tokenId?: string } | null>(null);
+  const [showCustomLicense, setShowCustomLicense] = useState(false);
+  const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
+  const [selectedPilType, setSelectedPilType] = useState<'open_use' | 'commercial_remix'>('open_use');
+  const [selectedRevShare, setSelectedRevShare] = useState<number>(0);
+  const [selectedLicensePrice, setSelectedLicensePrice] = useState<number>(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [ragLoaded, setRagLoaded] = useState<string | null>(null);
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
@@ -68,6 +76,19 @@ export function EnhancedAgentOrchestrator() {
   }, [chatAgent, fileUpload]);
 
   const explorerBase = storyAeneid.blockExplorers?.default.url || "https://aeneid.storyscan.xyz";
+
+  // Load RAG index (from localStorage or env)
+  useEffect(() => {
+    const url = (typeof window !== 'undefined' && localStorage.getItem('ragIndexUrl')) || process.env.NEXT_PUBLIC_RAG_INDEX_URL;
+    if (!url) return;
+    (async () => {
+      try {
+        const index = await loadIndexFromIpfs(url);
+        (chatAgent as any).engine?.setRagIndex?.(index);
+        setRagLoaded(url as string);
+      } catch {}
+    })();
+  }, [chatAgent]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -175,7 +196,7 @@ export function EnhancedAgentOrchestrator() {
         if (spg && publicClient) {
           const compressed = await compressImage(currentFile);
           const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
-          const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
+          const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '3000', 10);
           const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve) => {
             const t = setTimeout(() => resolve(null as any), timeoutMs);
             p.then(v => { clearTimeout(t); resolve(v); }).catch(() => { clearTimeout(t); resolve(null as any); });
@@ -226,7 +247,7 @@ export function EnhancedAgentOrchestrator() {
       }
 
       // Compose buttons
-      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Copy dHash"]);
+      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Custom License", "Copy dHash"]);
       if (faceDetected || requiresIdentity) {
         const cameraOnly = (process.env.NEXT_PUBLIC_CAMERA_ONLY_ON_FACE ?? 'false') === 'true';
         if (!buttons.includes("Take Photo")) buttons = ["Take Photo", ...buttons];
@@ -313,7 +334,7 @@ Tx: ${result.txHash}
           if (spg && publicClient) {
             const compressed = await compressImage(fileToUse);
             const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
-            const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
+            const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '3000', 10);
             const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve, reject) => {
               const t = setTimeout(() => resolve(null as any), timeoutMs);
               p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
@@ -346,7 +367,15 @@ Tx: ${result.txHash}
         pilType: plan.intent.pilType || DEFAULT_LICENSE_SETTINGS.pilType,
       };
 
-      const result = await registerAgent.executeRegister(plan.intent, fileToUse, licenseSettings);
+      const merged = { ...licenseSettings };
+      if (selectedPilType) merged.pilType = selectedPilType as any;
+      if (selectedPilType === 'commercial_remix') {
+        if (!isNaN(selectedRevShare)) merged.revShare = selectedRevShare;
+        if (!isNaN(selectedLicensePrice)) merged.licensePrice = selectedLicensePrice;
+      } else {
+        merged.revShare = 0; merged.licensePrice = 0;
+      }
+      const result = await registerAgent.executeRegister(plan.intent, fileToUse, merged, customTerms ? { customTerms } : undefined);
 
       if (result.success) {
         // Show initial success with transaction link
@@ -406,6 +435,7 @@ License Type: ${result.licenseType}`;
       chatAgent.clearPlan();
       registerAgent.resetRegister();
       setAnalyzedFile(null);
+      setCustomTerms(null);
     }
   }, [
     chatAgent,
@@ -428,6 +458,8 @@ License Type: ${result.licenseType}`;
       fileInputRef.current?.click();
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
+    } else if (buttonText === "Custom License") {
+      setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
       setAwaitingIdentity(true);
@@ -628,6 +660,14 @@ Thank you.`
                     onCancel={chatAgent.clearPlan}
                     swapState={swapAgent.swapState}
                     registerState={registerAgent.registerState}
+                    selectedPilType={selectedPilType}
+                    selectedRevShare={selectedRevShare}
+                    selectedLicensePrice={selectedLicensePrice}
+                    onLicenseChange={({ pilType, revShare, licensePrice }) => {
+                      if (pilType) setSelectedPilType(pilType);
+                      if (typeof revShare === 'number') setSelectedRevShare(revShare);
+                      if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
+                    }}
                   />
                 )}
               </div>
@@ -667,6 +707,14 @@ Thank you.`
         onChange={handleFileInputChange}
         style={{ display: 'none' }}
       />
+
+      {/* Custom License Modal */}
+      {showCustomLicense && (
+        <CustomLicenseTermsSelector
+          onSubmit={(t) => { setCustomTerms(t); setShowCustomLicense(false); chatAgent.addMessage('agent', 'Custom license terms set. Click Continue Registration to proceed.'); }}
+          onClose={() => setShowCustomLicense(false)}
+        />
+      )}
 
       {/* Camera Modal */}
       <CameraCapture

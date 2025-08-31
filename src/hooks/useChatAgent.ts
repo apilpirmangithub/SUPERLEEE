@@ -74,11 +74,14 @@ export function useChatAgent() {
     });
   }, []);
 
-  const simulateTyping = useCallback((callback: () => Promise<void> | void, delay = 800) => {
+  const simulateTyping = useCallback((callback: () => Promise<void> | void, delay = 500) => {
     setIsTyping(true);
     setTimeout(async () => {
-      setIsTyping(false);
-      await callback();
+      try {
+        await callback();
+      } finally {
+        setIsTyping(false);
+      }
     }, delay);
   }, []);
 
@@ -227,5 +230,7 @@ export function useChatAgent() {
     newChat,
     openSession,
     getEngineFile,
+    // expose engine for advanced controls (e.g., setRagIndex)
+    engine: superleeEngine,
   };
 }

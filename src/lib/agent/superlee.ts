@@ -7,6 +7,8 @@ import {
   imageToBase64,
   isOpenAIAvailable
 } from "../openai";
+import type { RagIndex } from "@/lib/rag";
+import { embedTexts, topK } from "@/lib/rag";
 
 /** ===== Types ===== */
 export type ConversationState =
@@ -25,6 +27,8 @@ export type SuperleeContext = {
   state: ConversationState;
   flow: "register" | "swap" | null;
   aiEnabled: boolean;
+  ragIndex?: RagIndex | null;
+  lastUserMessage?: string;
   registerData?: {
     file?: File;
     name?: string;
@@ -78,29 +82,21 @@ const RE_AMOUNT = /(\d[\d.,]*)/;
 
 /** ===== License Options ===== */
 function getLicenseOptions(): string[] {
-  const options = [
-    "Remix Allowed",
-    "Commercial Use Allowed", 
-    "Non-Commercial"
+  // Two default presets only
+  return [
+    "Open Use",
+    "Commercial Remix"
   ];
-  
-  options.push("AI Training Allowed");
-  
-  return options;
 }
 
 function licenseToCode(license: string): { license: string; pilType: string } {
   switch (license) {
-    case "Remix Allowed":
-      return { license: "by", pilType: "commercial_remix" };
-    case "Commercial Use Allowed":
-      return { license: "arr", pilType: "commercial_use" };
-    case "Non-Commercial":
-      return { license: "by-nc", pilType: "non_commercial_remix" };
-    case "AI Training Allowed":
+    case "Open Use":
       return { license: "cc0", pilType: "open_use" };
-    default:
+    case "Commercial Remix":
       return { license: "by", pilType: "commercial_remix" };
+    default:
+      return { license: "cc0", pilType: "open_use" };
   }
 }
 
@@ -172,7 +168,8 @@ export class SuperleeEngine {
   async getGreeting(): Promise<SuperleeResponse> {
     let greetingText = "Hey 👋, what do you want to do today? Choose one:";
 
-    if (this.context.aiEnabled) {
+    const allowSmart = (process.env.NEXT_PUBLIC_AI_SMART_RESPONSES ?? 'false') === 'true';
+    if (this.context.aiEnabled && allowSmart) {
       try {
         const aiGreeting = await generateContextualResponse(
           "User just started conversation with SuperLee",
@@ -196,6 +193,7 @@ export class SuperleeEngine {
 
   async processMessage(message: string, file?: File): Promise<SuperleeResponse> {
     const cleaned = message.trim().toLowerCase();
+    this.context.lastUserMessage = message;
 
     // Try AI-powered parsing first if available
     if (this.context.aiEnabled && this.context.state === "greeting") {
@@ -605,6 +603,21 @@ export class SuperleeEngine {
   /** ===== AI-Powered Methods ===== */
 
   private async tryAICommandParsing(message: string): Promise<SuperleeResponse | null> {
+    // Quick local parsing to avoid AI calls for basic inputs
+    const quick = parseSwapTokens(message);
+    if (quick.tokenIn && quick.tokenOut) {
+      this.context.flow = "swap";
+      this.context.swapData = { tokenIn: quick.tokenIn, tokenOut: quick.tokenOut, amount: quick.amount } as any;
+      if (quick.amount && quick.amount > 0) return this.prepareSwapPlan();
+      this.context.state = "swap_awaiting_amount";
+      return { type: "awaiting_input", prompt: `How much ${quick.tokenIn} do you want to swap?` };
+    }
+    if (/\bregister\b|\bmint\b|\bip\b/i.test(message)) {
+      this.context.flow = "register";
+      this.context.state = "register_awaiting_file";
+      return { type: "message", text: "Alright, please upload your IP file.", buttons: ["Upload File"] };
+    }
+
     if (!this.context.aiEnabled) return null;
 
     try {
@@ -680,8 +693,24 @@ export class SuperleeEngine {
   private async generateSmartResponse(fallback: string, context: string): Promise<string | null> {
     if (!this.context.aiEnabled) return fallback;
 
+    // Skip AI for basic prompts (reduce calls)
+    const allowSmart = (process.env.NEXT_PUBLIC_AI_SMART_RESPONSES ?? 'false') === 'true';
+    const basic = /User wants to (register IP|swap tokens)|User initiated conversation|guide them/i.test(context);
+    if (!allowSmart && basic) return fallback;
+
+    let ctx = context;
     try {
-      const response = await generateContextualResponse(fallback, context);
+      // Only use RAG for explicit doc-related queries
+      if (this.context.ragIndex && this.context.lastUserMessage && /whitepaper|story\b|architecture|execution layer|proof of creativity|consensus/i.test(this.context.lastUserMessage)) {
+        const [q] = await embedTexts([this.context.lastUserMessage]);
+        const hits = topK(this.context.ragIndex, q, 5);
+        const snippets = hits.map(h => h.text.slice(0, 600)).join('\n---\n');
+        ctx = `${context}\n\nRelevant docs:\n${snippets}`;
+      }
+    } catch {}
+
+    try {
+      const response = await generateContextualResponse(fallback, ctx);
       return response || fallback;
     } catch (error) {
       console.error("AI response generation failed:", error);
@@ -767,6 +796,10 @@ Just tell me what you'd like to do!`;
 
   setContext(context: SuperleeContext) {
     this.context = context;
+  }
+
+  setRagIndex(index: RagIndex | null) {
+    this.context.ragIndex = index;
   }
 }
 

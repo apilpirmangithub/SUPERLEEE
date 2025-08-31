@@ -4,25 +4,17 @@ import OpenAI from 'openai';
 let openaiClient: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI | null {
+  // Only create server-side client
+  if (typeof window !== 'undefined') return null;
   if (!openaiClient) {
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      console.warn('OpenAI API key not found. Falling back to rule-based parsing.');
-      return null;
-    }
-    
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return null;
     try {
-      openaiClient = new OpenAI({
-        apiKey,
-        dangerouslyAllowBrowser: true // Required for client-side usage
-      });
-    } catch (error) {
-      console.error('Failed to initialize OpenAI client:', error);
+      openaiClient = new OpenAI({ apiKey });
+    } catch {
       return null;
     }
   }
-  
   return openaiClient;
 }
 
@@ -55,9 +47,13 @@ export interface AIImageDescription {
 // Parse user command with natural language understanding
 export async function parseCommandWithAI(message: string): Promise<AICommandParsing | null> {
   const client = getOpenAIClient();
-  if (!client) return null;
-  
   try {
+    if (!client) {
+      const r = await fetch('/api/ai/parse', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) });
+      const j = await r.json();
+      if (j?.ok && j?.data) return j.data as AICommandParsing;
+      return null;
+    }
     const response = await client.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
@@ -101,14 +97,18 @@ For register commands, extract: title, description, license type if mentioned`
 
 // Generate smart conversational responses
 export async function generateContextualResponse(
-  userMessage: string, 
-  context: string, 
+  userMessage: string,
+  context: string,
   intent?: string
 ): Promise<string | null> {
   const client = getOpenAIClient();
-  if (!client) return null;
-  
   try {
+    if (!client) {
+      const r = await fetch('/api/ai/respond', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ userMessage, context, intent }) });
+      const j = await r.json();
+      if (j?.ok && typeof j?.data === 'string') return j.data as string;
+      return null;
+    }
     const response = await client.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
@@ -146,9 +146,13 @@ Respond naturally in a conversational way. If user needs clarification, ask spec
 // Analyze uploaded images for IP registration
 export async function analyzeImageForIP(imageBase64: string): Promise<AIImageDescription | null> {
   const client = getOpenAIClient();
-  if (!client) return null;
-  
   try {
+    if (!client) {
+      const r = await fetch('/api/ai/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ imageBase64 }) });
+      const j = await r.json();
+      if (j?.ok && j?.data) return j.data as AIImageDescription;
+      return null;
+    }
     const response = await client.chat.completions.create({
       model: 'gpt-4-vision-preview',
       messages: [
@@ -211,29 +215,13 @@ export async function imageToBase64(file: File): Promise<string> {
 
 // Check if OpenAI is available
 export function isOpenAIAvailable(): boolean {
-  return getOpenAIClient() !== null;
+  // Heuristic: if running on server and key exists, or on client assume server endpoint is available
+  if (typeof window === 'undefined') return !!process.env.OPENAI_API_KEY;
+  return true;
 }
 
 // Get OpenAI status for debugging
 export function getOpenAIStatus(): { available: boolean; error?: string } {
-  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    return {
-      available: false,
-      error: 'API key not configured'
-    };
-  }
-  
-  try {
-    const client = getOpenAIClient();
-    return {
-      available: client !== null
-    };
-  } catch (error) {
-    return {
-      available: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
+  const available = typeof window === 'undefined' ? !!process.env.OPENAI_API_KEY : true;
+  return available ? { available: true } : { available: false, error: 'API key not configured' };
 }
