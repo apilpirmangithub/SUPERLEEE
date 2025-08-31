@@ -324,29 +324,6 @@ export class SuperleeEngine {
     };
   }
 
-  private handleAIAnalysisComplete(aiResult: { isAI: boolean; confidence: number }): SuperleeResponse {
-    if (!this.context.registerData) {
-      this.context.registerData = {};
-    }
-
-    this.context.registerData.aiDetected = aiResult.isAI;
-    this.context.registerData.aiConfidence = aiResult.confidence;
-
-    let response = `✅ AI analysis completed!\n\n`;
-
-    if (aiResult.isAI) {
-      response += `🤖 Result: This image was created by AI (confidence: ${(aiResult.confidence * 100).toFixed(1)}%)\n\n⚠️ Note: "AI Training Allowed" license option will not be available for AI-generated content.`;
-    } else {
-      response += `👨‍🎨 Result: This image was created manually/originally (confidence: ${((1 - aiResult.confidence) * 100).toFixed(1)}%)\n\n✅ All license options are available for this content.`;
-    }
-
-    this.context.state = "register_awaiting_name";
-    return {
-      type: "message",
-      text: response,
-      buttons: ["Continue Registration"]
-    };
-  }
 
   private handleNameInput(name: string): SuperleeResponse {
     if (!this.context.registerData) {
