@@ -165,7 +165,6 @@ export function EnhancedAgentOrchestrator() {
       }
 
       setLastDHash(wl.hash || null);
-      const combinedText = `${aiText}\n\n${ipText}`;
 
       // Duplicate check (after safety analysis)
       let dupFound = false;
