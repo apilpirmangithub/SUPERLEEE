@@ -24,6 +24,7 @@ import { sha256HexOfFile } from "@/lib/utils/crypto";
 import { checkDuplicateQuick, checkDuplicateByImageHash } from "@/lib/utils/registry";
 import { getFaceEmbedding, cosineSimilarity, countFaces, preloadFaceModels } from "@/lib/utils/face";
 import type { Hex } from "viem";
+import { useRouter } from "next/navigation";
 
 export function EnhancedAgentOrchestrator() {
   const chatAgent = useChatAgent();
@@ -430,7 +431,7 @@ License Type: ${result.licenseType}`;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const router = (await import('next/navigation')).useRouter?.() as any;
+  const router = useRouter();
   const handleButtonClick = useCallback((buttonText: string) => {
     if (buttonText === "Register IP") {
       // Start register flow by asking for file directly (no chat prompt)
