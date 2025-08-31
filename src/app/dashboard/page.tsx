@@ -53,9 +53,9 @@ export default function DashboardPage() {
 
   // ---------- Fast path: ERC721Enumerable ----------
   async function tryEnumerableRoute(): Promise<string[] | null> {
-    if (!pc || !SPG || !address) return null;
+    if (!rpcClient || !SPG || !address) return null;
     try {
-      const supports = (await pc.readContract({
+      const supports = (await rpcClient.readContract({
         address: SPG,
         abi: [
           {
@@ -72,7 +72,7 @@ export default function DashboardPage() {
 
       if (!supports) return null;
 
-      const bal = (await pc.readContract({
+      const bal = (await rpcClient.readContract({
         address: SPG,
         abi: erc721Abi,
         functionName: "balanceOf",
@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
       const tokenIds: string[] = [];
       for (let i = 0n; i < bal; i++) {
-        const tid = (await pc.readContract({
+        const tid = (await rpcClient.readContract({
           address: SPG,
           abi: [
             {
@@ -111,8 +111,8 @@ export default function DashboardPage() {
 
   // ---------- Fallback: progressive log scan ----------
   async function fetchLogsProgressive(): Promise<string[]> {
-    if (!pc || !SPG || !address) return [];
-    const latest = await pc.getBlockNumber();
+    if (!rpcClient || !SPG || !address) return [];
+    const latest = await rpcClient.getBlockNumber();
 
     let range = 60_000n; // kecil → cepat tampil
     const maxBack = 2_000_000n;
@@ -121,7 +121,7 @@ export default function DashboardPage() {
     const tokenIds = new Set<string>();
     while (true) {
       const from = latest > range ? latest - range : 0n;
-      const logs = await pc.getLogs({
+      const logs = await rpcClient.getLogs({
         address: SPG,
         event: parseAbiItem(
           "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
@@ -144,14 +144,14 @@ export default function DashboardPage() {
 
   // ---------- Optional: full history scan ----------
   async function fetchLogsFull(): Promise<string[]> {
-    if (!pc || !SPG || !address) return [];
-    const latest = await pc.getBlockNumber();
+    if (!rpcClient || !SPG || !address) return [];
+    const latest = await rpcClient.getBlockNumber();
     const step = 75_000n;
     const tokenIds = new Set<string>();
 
     for (let from = START_BLOCK; from <= latest; from += step) {
       const to = from + step - 1n > latest ? latest : from + step - 1n;
-      const logs = await pc.getLogs({
+      const logs = await rpcClient.getLogs({
         address: SPG,
         event: parseAbiItem(
           "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
@@ -169,12 +169,12 @@ export default function DashboardPage() {
   }
 
   async function buildItems(tokenIds: string[]) {
-    if (!pc || !SPG) return [];
+    if (!rpcClient || !SPG) return [];
     const results: Item[] = await Promise.all(
       tokenIds.map(async (id) => {
         let tokenURI: string | undefined;
         try {
-          tokenURI = (await pc.readContract({
+          tokenURI = (await rpcClient.readContract({
             address: SPG,
             abi: erc721Abi,
             functionName: "tokenURI",
