@@ -45,8 +45,8 @@ export function useChatAgent() {
     } catch {}
   }, [history]);
 
-  const showGreeting = useCallback(() => {
-    const greeting = superleeEngine.getGreeting();
+  const showGreeting = useCallback(async () => {
+    const greeting = await superleeEngine.getGreeting();
     if (greeting.type === "message") {
       setMessages([{
         role: "agent",
