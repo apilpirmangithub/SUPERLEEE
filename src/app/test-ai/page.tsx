@@ -8,6 +8,7 @@ import {
   isOpenAIAvailable 
 } from "@/lib/openai";
 import { AIStatusIndicator } from "@/components/AIStatusIndicator";
+import RagIndexer from "@/components/RagIndexer";
 
 export default function TestAI() {
   const [testMessage, setTestMessage] = useState("swap 1 WIP to USDC");
