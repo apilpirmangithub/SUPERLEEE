@@ -334,16 +334,28 @@ export class SuperleeEngine {
     };
   }
 
-  private handleFileUpload(file: File): SuperleeResponse {
+  private async handleFileUpload(file: File): Promise<SuperleeResponse> {
     if (!this.context.registerData) {
       this.context.registerData = {};
     }
 
     this.context.registerData.file = file;
+
+    // Analyze image with AI if available
+    await this.analyzeUploadedImage(file);
+
     this.context.state = "register_awaiting_name";
+
+    let prompt = "Perfect! What should we call this IP? (Enter a title/name)";
+
+    // If AI analysis is available, suggest title
+    if (this.context.registerData.aiAnalysis?.suggestedTitle) {
+      prompt += `\n\n💡 AI suggests: "${this.context.registerData.aiAnalysis.suggestedTitle}"`;
+    }
+
     return {
       type: "awaiting_input",
-      prompt: "Perfect! What should we call this IP? (Enter a title/name)"
+      prompt
     };
   }
 
