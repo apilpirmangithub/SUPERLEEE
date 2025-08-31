@@ -233,7 +233,7 @@ export class SuperleeEngine {
 
       case "register_awaiting_file":
         if (file) {
-          return this.handleFileUpload(file, aiDetectionResult);
+          return this.handleFileUpload(file);
         }
         return {
           type: "awaiting_file"
