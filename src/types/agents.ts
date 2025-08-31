@@ -24,13 +24,6 @@ export type Plan = {
   intent: RegisterIntent;
 };
 
-// Swap agent state
-export type SwapState = {
-  quote: any | null;
-  status: 'idle' | 'quoting' | 'approving' | 'swapping' | 'success' | 'error';
-  error: any | null;
-  txHash?: string;
-};
 
 // Register IP agent state
 export type RegisterState = {
