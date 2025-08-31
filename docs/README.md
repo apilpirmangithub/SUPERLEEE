@@ -1,24 +1,24 @@
-# 🤖 AI Agent DApp
+# AI Agent DApp
 
 An AI-powered app that lets users chat naturally to swap tokens and register intellectual property as NFTs.
 
 ## What It Does
 
 **Chat with AI**: Talk to SuperLee in natural language
-- "I want to trade some WIP for USDC" ✅
-- "Register my artwork as IP" ✅  
-- "Help me swap tokens" ✅
+- "I want to trade some WIP for USDC"
+- "Register my artwork as IP"  
+- "Help me swap tokens"
 
 **Smart Features**:
-- 🧠 AI understands natural language (OpenAI)
-- 📸 Analyzes images automatically 
-- 💱 Token swapping via PiperX
-- 🎨 IP registration on Story Protocol
-- 👤 Face recognition for identity verification
+- AI understands natural language (OpenAI)
+- Analyzes images automatically 
+- Token swapping via PiperX
+- IP registration on Story Protocol
+- Face recognition for identity verification
 
 ## Quick Start
 
-1. **Get API Keys** (see `docs/SETUP.md`)
+1. **Get API Keys** (see docs/SETUP.md)
    - OpenAI for AI features
    - WalletConnect for wallets
    - Pinata for file storage
@@ -29,7 +29,7 @@ An AI-powered app that lets users chat naturally to swap tokens and register int
    npm run dev
    ```
 
-3. **Deploy** (see `docs/DEPLOY.md`)
+3. **Deploy** (see docs/DEPLOY.md)
    ```bash
    bash scripts/deploy.sh vercel
    ```
@@ -51,11 +51,11 @@ src/
 
 ## Key Files
 
-- `src/lib/openai.ts` - AI features
-- `src/lib/agent/superlee.ts` - Chat engine
-- `src/components/agent/EnhancedAgentOrchestrator.tsx` - Main chat UI
-- `next.config.mjs` - Production config
-- `src/middleware.ts` - Security headers
+- src/lib/openai.ts - AI features
+- src/lib/agent/superlee.ts - Chat engine
+- src/components/agent/EnhancedAgentOrchestrator.tsx - Main chat UI
+- next.config.mjs - Production config
+- src/middleware.ts - Security headers
 
 ## How It Works
 
@@ -77,10 +77,10 @@ src/
 
 ## Deployment Ready
 
-✅ Production optimized
-✅ Security headers configured  
-✅ Health monitoring included
-✅ Error tracking ready
-✅ Multiple platform support
+Production optimized
+Security headers configured  
+Health monitoring included
+Error tracking ready
+Multiple platform support
 
-Built with ��️ for the future of AI + Web3
+Built with love for the future of AI + Web3

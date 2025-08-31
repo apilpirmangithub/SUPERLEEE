@@ -1,9 +1,9 @@
-# ⚙️ Environment Setup
+# Environment Setup
 
-Copy this to your `.env.local` file:
+Copy this to your .env.local file:
 
 ```bash
-# Required - Get these first!
+# Required - Get these first
 OPENAI_API_KEY=sk-your-openai-key-here
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your-walletconnect-id
 PINATA_JWT=your-pinata-jwt-token
@@ -22,21 +22,21 @@ NEXT_PUBLIC_ANALYTICS_ID=your-analytics-id
 
 ### OpenAI (Required for AI features)
 1. Go to platform.openai.com
-2. Create account → API Keys
+2. Create account then API Keys
 3. Create new key (starts with "sk-")
-4. Copy it to `OPENAI_API_KEY`
+4. Copy it to OPENAI_API_KEY
 
 ### WalletConnect (Required for wallet connections)  
 1. Go to cloud.walletconnect.com
 2. Create project
 3. Copy Project ID
-4. Add to `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
+4. Add to NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 
 ### Pinata (Required for IPFS uploads)
 1. Go to pinata.cloud
-2. Sign up → API Keys
+2. Sign up then API Keys
 3. Create new JWT
-4. Copy to `PINATA_JWT`
+4. Copy to PINATA_JWT
 
 ## For Production
 Add these extra variables for production:
@@ -52,4 +52,4 @@ npm run dev
 # AI status should show "AI Enhanced" if OpenAI is working
 ```
 
-That's all you need! 🎯
+That's all you need.

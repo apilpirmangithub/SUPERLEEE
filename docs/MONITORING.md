@@ -1,10 +1,10 @@
-# 📊 Monitoring Your App
+# Monitoring Your App
 
 ## Error Tracking with Sentry (Recommended)
 
 ### Setup (2 minutes)
 1. Go to sentry.io, create account
-2. New project → Next.js
+2. New project then Next.js
 3. Copy your DSN
 4. Add to environment variables:
    ```bash
@@ -16,7 +16,7 @@
 npm install @sentry/nextjs
 ```
 
-That's it! Errors will automatically be tracked.
+That's it. Errors will automatically be tracked.
 
 ## Analytics 
 
@@ -25,7 +25,7 @@ That's it! Errors will automatically be tracked.
 npm install @vercel/analytics
 ```
 
-Add to your `_app.tsx`:
+Add to your _app.tsx:
 ```typescript
 import { Analytics } from '@vercel/analytics/react';
 
@@ -41,7 +41,7 @@ export default function App({ Component, pageProps }) {
 
 ## Health Monitoring
 
-Your app already has a health check at `/api/health`.
+Your app already has a health check at /api/health.
 
 ### Setup Uptime Monitoring
 Use any of these (free options):
@@ -49,7 +49,7 @@ Use any of these (free options):
 - StatusCake  
 - Pingdom
 
-Monitor: `https://your-domain.com/api/health`
+Monitor: https://your-domain.com/api/health
 
 ## What to Monitor
 
@@ -73,7 +73,7 @@ Monitor: `https://your-domain.com/api/health`
 
 ## Simple Dashboard
 
-Check `/api/health` regularly - it tells you:
+Check /api/health regularly - it tells you:
 - Overall system health
 - OpenAI status
 - IPFS status
@@ -82,7 +82,7 @@ Check `/api/health` regularly - it tells you:
 ## When Things Go Wrong
 1. Check Sentry for errors
 2. Look at hosting platform logs
-3. Verify `/api/health` status
+3. Verify /api/health status
 4. Check if API keys expired
 
-Keep it simple - you don't need complex monitoring for most apps! 📈
+Keep it simple - you don't need complex monitoring for most apps.
