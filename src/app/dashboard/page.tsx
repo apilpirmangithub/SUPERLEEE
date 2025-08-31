@@ -328,7 +328,14 @@ export default function DashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((it) => {
+        {items.filter(it => {
+          if (!query) return true;
+          const name = it.nftMeta?.name || '';
+          const desc = it.nftMeta?.description || '';
+          const ipTitle = it.ipMeta?.title || '';
+          const text = `${name} ${desc} ${ipTitle}`.toLowerCase();
+          return text.includes(String(query).toLowerCase());
+        }).map((it) => {
           const name = it.nftMeta?.name || `Token #${it.tokenId}`;
           const image = ipfsToHttps(it.nftMeta?.image);
           const desc = it.nftMeta?.description;
