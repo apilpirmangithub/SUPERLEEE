@@ -105,13 +105,23 @@ Return ONLY a raw JSON object (no backticks, no markdown, no explanations) with 
   "ai_generated": true | false,
   "ai_confidence": 0.0,
   "fair_use": true | false,
-  "fair_use_reason": "..."
+  "fair_use_reason": "...",
+  "flags": {
+    "logo_brand": true | false,
+    "copyrighted_character": true | false,
+    "watermark": true | false,
+    "visible_text": true | false,
+    "face_identity": true | false,
+    "nsfw": true | false,
+    "illegal": true | false,
+    "derivative_trace": true | false
+  }
 }
 Rules:
 - Be conservative by default. If unsure, set risk to "Medium" and tolerance to a cautionary message.
 - Only use tolerance starting with "Good to register" when you are confident and risk is "Low".
 - Evaluate: logos/brands, copyrighted characters, watermarks, visible text, faces/identity, tracing/derivatives, NSFW/illegal.
-- Consider fair use categories: commentary, criticism, news reporting, teaching, scholarship, research, parody, or incidental/background inclusion. Mark fair_use=true only when clearly applicable and describe briefly in fair_use_reason.
+- Consider fair use categories: commentary, criticism, news reporting, teaching, scholarship, research, parody, or incidental/background inclusion. If incidental/background use is evident, set fair_use=true and explain briefly in fair_use_reason.
 - For ai_generated, output a boolean. For ai_confidence, output a number from 0 to 1 (two decimals max).
 - Keep each text field ≤ 280 chars. No extra fields, no prose, no code fences.
 `
