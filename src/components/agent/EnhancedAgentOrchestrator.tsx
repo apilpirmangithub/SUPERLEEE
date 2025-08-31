@@ -80,14 +80,21 @@ export function EnhancedAgentOrchestrator() {
   // Load RAG index (from localStorage or env)
   useEffect(() => {
     const url = (typeof window !== 'undefined' && localStorage.getItem('ragIndexUrl')) || process.env.NEXT_PUBLIC_RAG_INDEX_URL;
-    if (!url) return;
-    (async () => {
-      try {
-        const index = await loadIndexFromIpfs(url);
-        (chatAgent as any).engine?.setRagIndex?.(index);
-        setRagLoaded(url as string);
-      } catch {}
-    })();
+    if (url) {
+      (async () => {
+        try {
+          const index = await loadIndexFromIpfs(url);
+          (chatAgent as any).engine?.setRagIndex?.(index);
+          setRagLoaded(url as string);
+        } catch {}
+      })();
+    }
+    // Preload face models in idle time
+    const idle = (cb: () => void) => {
+      if (typeof (window as any).requestIdleCallback === 'function') (window as any).requestIdleCallback(cb, { timeout: 2000 });
+      else setTimeout(cb, 500);
+    };
+    idle(() => { preloadFaceModels().catch(() => {}); });
   }, [chatAgent]);
 
   // Auto-scroll to bottom when messages change
