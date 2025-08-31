@@ -251,7 +251,7 @@ export class SuperleeEngine {
 
       case "register_awaiting_file":
         if (file) {
-          return this.handleFileUpload(file);
+          return await this.handleFileUpload(file);
         }
         return {
           type: "awaiting_file"
