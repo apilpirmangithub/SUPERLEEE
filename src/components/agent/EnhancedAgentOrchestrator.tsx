@@ -15,6 +15,7 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
+import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
 import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
@@ -37,6 +38,8 @@ export function EnhancedAgentOrchestrator() {
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [awaitingIdentity, setAwaitingIdentity] = useState<boolean>(false);
   const [dupCheck, setDupCheck] = useState<{ checked: boolean; found: boolean; tokenId?: string } | null>(null);
+  const [showCustomLicense, setShowCustomLicense] = useState(false);
+  const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -226,7 +229,7 @@ export function EnhancedAgentOrchestrator() {
       }
 
       // Compose buttons
-      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Copy dHash"]);
+      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Custom License", "Copy dHash"]);
       if (faceDetected || requiresIdentity) {
         const cameraOnly = (process.env.NEXT_PUBLIC_CAMERA_ONLY_ON_FACE ?? 'false') === 'true';
         if (!buttons.includes("Take Photo")) buttons = ["Take Photo", ...buttons];
@@ -346,7 +349,7 @@ Tx: ${result.txHash}
         pilType: plan.intent.pilType || DEFAULT_LICENSE_SETTINGS.pilType,
       };
 
-      const result = await registerAgent.executeRegister(plan.intent, fileToUse, licenseSettings);
+      const result = await registerAgent.executeRegister(plan.intent, fileToUse, licenseSettings, customTerms ? { customTerms } : undefined);
 
       if (result.success) {
         // Show initial success with transaction link
@@ -406,6 +409,7 @@ License Type: ${result.licenseType}`;
       chatAgent.clearPlan();
       registerAgent.resetRegister();
       setAnalyzedFile(null);
+      setCustomTerms(null);
     }
   }, [
     chatAgent,
@@ -428,6 +432,8 @@ License Type: ${result.licenseType}`;
       fileInputRef.current?.click();
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
+    } else if (buttonText === "Custom License") {
+      setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
       setAwaitingIdentity(true);
@@ -667,6 +673,14 @@ Thank you.`
         onChange={handleFileInputChange}
         style={{ display: 'none' }}
       />
+
+      {/* Custom License Modal */}
+      {showCustomLicense && (
+        <CustomLicenseTermsSelector
+          onSubmit={(t) => { setCustomTerms(t); setShowCustomLicense(false); chatAgent.addMessage('agent', 'Custom license terms set. Click Continue Registration to proceed.'); }}
+          onClose={() => setShowCustomLicense(false)}
+        />
+      )}
 
       {/* Camera Modal */}
       <CameraCapture
