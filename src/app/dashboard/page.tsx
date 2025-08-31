@@ -38,7 +38,7 @@ export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync, isPending: switching } = useSwitchChain();
-  const pc = usePublicClient({ chainId: AENEID_ID }); // ✅ paksa Aeneid
+  const rpcClient = useMemo(() => createPublicClient({ chain: storyAeneid, transport: http('/api/rpc/relay') }), []);
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
