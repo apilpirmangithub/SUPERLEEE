@@ -64,54 +64,6 @@ export async function detectIPStatus(file: File): Promise<{ result: string }> {
   }
 }
 
-// Image compression utility
-export async function compressImage(file: File, maxWidth: number = 1920, maxHeight: number = 1080, quality: number = 0.8): Promise<File> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    img.onload = () => {
-      // Calculate new dimensions
-      let { width, height } = img;
-      
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width;
-        width = maxWidth;
-      }
-      
-      if (height > maxHeight) {
-        width = (width * maxHeight) / height;
-        height = maxHeight;
-      }
-      
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Draw and compress
-      ctx?.drawImage(img, 0, 0, width, height);
-      
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/webp',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          } else {
-            reject(new Error('Image compression failed'));
-          }
-        },
-        'image/webp',
-        quality
-      );
-    };
-    
-    img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = URL.createObjectURL(file);
-  });
-}
 
 // Utility functions for file handling
 export function fileToBuffer(file: File): Promise<Buffer> {
