@@ -31,6 +31,7 @@ export function Composer({
   const { isConnected } = useAccount();
   const [prompt, setPrompt] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleAutoGrow = (element: HTMLTextAreaElement) => {
