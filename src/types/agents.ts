@@ -19,9 +19,9 @@ export type Message = {
 
 // Plan types
 export type Plan = {
-  type: "swap" | "register";
+  type: "register";
   steps: string[];
-  intent: SwapIntent | RegisterIntent;
+  intent: RegisterIntent;
 };
 
 // Swap agent state
