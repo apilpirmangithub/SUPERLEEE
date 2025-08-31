@@ -11,11 +11,22 @@ export function cosine(a: number[], b: number[]): number {
   return dot / denom;
 }
 
+const _embCache = new Map<string, number[]>();
+
 export async function embedTexts(texts: string[]): Promise<number[][]> {
-  const r = await fetch("/api/rag/embed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chunks: texts.map((t, i)=>({ id: String(i), text: t })) }) });
-  const j = await r.json();
-  if (!j?.ok) throw new Error("embed-failed");
-  return j.vectors.map((v: any)=> v.embedding as number[]);
+  const out: (number[] | null)[] = texts.map(t => _embCache.get(t) || null);
+  const need: { id: string; text: string; idx: number }[] = [];
+  texts.forEach((t, i) => { if (!out[i]) need.push({ id: String(i), text: t, idx: i }); });
+  if (need.length) {
+    const r = await fetch("/api/rag/embed", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chunks: need.map(n=>({ id: n.id, text: n.text })) }) });
+    const j = await r.json();
+    if (!j?.ok) throw new Error("embed-failed");
+    j.vectors.forEach((v: any, k: number) => {
+      const idx = need[k].idx; const text = need[k].text; const emb = v.embedding as number[];
+      _embCache.set(text, emb); out[idx] = emb;
+    });
+  }
+  return out as number[][];
 }
 
 export async function loadIndexFromIpfs(cidOrUrl: string): Promise<RagIndex> {
