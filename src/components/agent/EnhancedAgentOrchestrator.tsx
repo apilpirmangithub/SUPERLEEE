@@ -21,7 +21,7 @@ import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
 import { checkDuplicateQuick, checkDuplicateByImageHash } from "@/lib/utils/registry";
-import { getFaceEmbedding, cosineSimilarity, countFaces } from "@/lib/utils/face";
+import { getFaceEmbedding, cosineSimilarity, countFaces, preloadFaceModels } from "@/lib/utils/face";
 import type { Hex } from "viem";
 
 export function EnhancedAgentOrchestrator() {
