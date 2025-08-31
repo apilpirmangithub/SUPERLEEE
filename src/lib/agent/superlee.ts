@@ -347,17 +347,12 @@ export class SuperleeEngine {
     this.context.registerData.description = description.trim();
     this.context.state = "register_awaiting_license";
     
-    const aiDetected = this.context.registerData.aiDetected || false;
-    const licenseOptions = getLicenseOptions(aiDetected);
-    
+    const licenseOptions = getLicenseOptions();
+
     let message = "Which license type would you like to choose?\n\n";
     licenseOptions.forEach((option, index) => {
       message += `${index + 1}. ${option}\n`;
     });
-    
-    if (aiDetected) {
-      message += "\n⚠️ Note: AI Training Allowed is not available for AI-generated content.";
-    }
     
     return {
       type: "message",
