@@ -64,7 +64,9 @@ export default function RagIndexer({ url, className = "" }: { url: string; class
       setStatus("Uploading index to IPFS...");
       const up = await uploadJSON(index);
       const cid = up.cid || up.url;
-      setIndexUrl(`https://ipfs.io/ipfs/${cid.replace(/^ipfs:\/\//, '')}`);
+      const finalUrl = `https://ipfs.io/ipfs/${cid.replace(/^ipfs:\/\//, '')}`;
+      setIndexUrl(finalUrl);
+      try { localStorage.setItem('ragIndexUrl', finalUrl); } catch {}
       setStatus("Done");
     } catch (e: any) {
       setStatus(e?.message || 'Failed');
