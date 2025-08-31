@@ -253,23 +253,32 @@ export class SuperleeEngine {
   private handleLicenseSelection(license: string): SuperleeResponse {
     if (!this.context.registerData) this.context.registerData = {};
 
-    const licenseInfo = licenseToCode(license);
-    this.context.registerData.license = licenseInfo.license;
-    this.context.registerData.pilType = licenseInfo.pilType;
+    const info = licenseToCode(license);
+    if (!info) {
+      const licenseOptions = getLicenseOptions();
+      return {
+        type: "message",
+        text: "Pilih tipe lisensi dari tombol berikut:",
+        buttons: licenseOptions
+      };
+    }
+
+    this.context.registerData.license = info.license;
+    this.context.registerData.pilType = info.pilType;
     this.context.state = "register_ready";
 
     const intent: RegisterIntent = {
       kind: "register",
       title: this.context.registerData.name,
       prompt: this.context.registerData.description,
-      license: licenseInfo.license as any,
-      pilType: licenseInfo.pilType as any
+      license: info.license as any,
+      pilType: info.pilType as any
     };
 
     const plan = [
       `Name IP : "${this.context.registerData.name}"`,
       `Description: "${this.context.registerData.description}"`,
-      `License: ${license}`
+      `License: ${info.pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
     ];
 
     return { type: "plan", intent, plan };
