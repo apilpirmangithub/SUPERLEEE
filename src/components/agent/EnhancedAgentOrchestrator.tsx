@@ -127,7 +127,7 @@ export function EnhancedAgentOrchestrator() {
       const ipPromise = mode === 'server' ? detectIPStatus(currentFile) : Promise.resolve({ result: clientIPText });
       const wlPromise = isWhitelistedImage(currentFile);
 
-      const [aiResultSettled, ipResultSettled, wlSettled] = await Promise.allSettled([aiPromise, ipPromise, wlPromise]);
+      const [ipResultSettled, wlSettled] = await Promise.allSettled([ipPromise, wlPromise]);
 
       // Handle AI detection result
       let aiResult: { isAI: boolean; confidence: number } = { isAI: false, confidence: 0 };
