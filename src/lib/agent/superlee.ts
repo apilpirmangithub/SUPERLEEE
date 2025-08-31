@@ -508,6 +508,108 @@ export class SuperleeEngine {
     };
   }
 
+  /** ===== AI-Powered Methods ===== */
+
+  private async tryAICommandParsing(message: string): Promise<SuperleeResponse | null> {
+    if (!this.context.aiEnabled) return null;
+
+    try {
+      const aiResult = await parseCommandWithAI(message);
+      if (!aiResult || aiResult.confidence < 0.7) return null;
+
+      if (aiResult.intent === "swap") {
+        return this.handleAISwapCommand(aiResult);
+      } else if (aiResult.intent === "register") {
+        return this.handleAIRegisterCommand(aiResult);
+      }
+
+      return null;
+    } catch (error) {
+      console.error("AI command parsing failed:", error);
+      return null;
+    }
+  }
+
+  private async handleAISwapCommand(aiResult: any): Promise<SuperleeResponse> {
+    this.context.flow = "swap";
+    this.context.swapData = {};
+
+    const { extractedData } = aiResult;
+
+    // If AI extracted complete swap data, prepare plan immediately
+    if (extractedData.tokenIn && extractedData.tokenOut && extractedData.amount) {
+      const tokenInAddr = findTokenAddress(extractedData.tokenIn);
+      const tokenOutAddr = findTokenAddress(extractedData.tokenOut);
+
+      if (tokenInAddr && tokenOutAddr) {
+        this.context.swapData = {
+          tokenIn: extractedData.tokenIn,
+          tokenOut: extractedData.tokenOut,
+          amount: extractedData.amount,
+          slippagePct: extractedData.slippage || 0.5
+        };
+
+        return this.prepareSwapPlan();
+      }
+    }
+
+    // Otherwise, follow normal flow
+    this.context.state = "swap_awaiting_tokens";
+    const response = await this.generateSmartResponse(
+      aiResult.naturalResponse || "I'll help you swap tokens! Which tokens would you like to swap?",
+      "User wants to swap tokens"
+    );
+
+    return {
+      type: "awaiting_input",
+      prompt: response || "Which tokens do you want to swap? (e.g., 'WIP to USDC' or 'ETH > USDT')"
+    };
+  }
+
+  private async handleAIRegisterCommand(aiResult: any): Promise<SuperleeResponse> {
+    this.context.flow = "register";
+    this.context.state = "register_awaiting_file";
+    this.context.registerData = {};
+
+    const response = await this.generateSmartResponse(
+      aiResult.naturalResponse || "Great! I'll help you register your IP. Please upload your file.",
+      "User wants to register IP"
+    );
+
+    return {
+      type: "message",
+      text: response || "Alright, please upload your IP file.",
+      buttons: ["Upload File"]
+    };
+  }
+
+  private async generateSmartResponse(fallback: string, context: string): Promise<string | null> {
+    if (!this.context.aiEnabled) return fallback;
+
+    try {
+      const response = await generateContextualResponse(fallback, context);
+      return response || fallback;
+    } catch (error) {
+      console.error("AI response generation failed:", error);
+      return fallback;
+    }
+  }
+
+  private async analyzeUploadedImage(file: File): Promise<void> {
+    if (!this.context.aiEnabled || !this.context.registerData) return;
+
+    try {
+      const base64 = await imageToBase64(file);
+      const analysis = await analyzeImageForIP(base64);
+
+      if (analysis) {
+        this.context.registerData.aiAnalysis = analysis;
+      }
+    } catch (error) {
+      console.error("AI image analysis failed:", error);
+    }
+  }
+
   getContext(): SuperleeContext {
     return this.context;
   }
