@@ -8,6 +8,10 @@ interface PlanBoxProps {
   onCancel: () => void;
   swapState?: SwapState;
   registerState?: RegisterState;
+  onLicenseChange?: (data: { pilType: 'open_use' | 'commercial_remix'; revShare?: number; licensePrice?: number }) => void;
+  selectedPilType?: 'open_use' | 'commercial_remix';
+  selectedRevShare?: number;
+  selectedLicensePrice?: number;
 }
 
 export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }: PlanBoxProps) {
@@ -68,6 +72,46 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
           <div key={index}>{step}</div>
         ))}
       </div>
+
+      {plan.type === 'register' && (
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <label className="flex flex-col gap-1">
+            License Type
+            <select
+              className="bg-transparent border border-white/20 rounded p-2"
+              value={((typeof (window as any) !== 'undefined') && (undefined)) || (undefined)}
+              onChange={(e) => onLicenseChange?.({ pilType: (e.target.value as any) })}
+              defaultValue={selectedPilType || 'open_use'}
+            >
+              <option value="open_use">Open Use (free)</option>
+              <option value="commercial_remix">Commercial Remix</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            Revenue Share (%)
+            <input
+              type="number"
+              className="bg-transparent border border-white/20 rounded p-2"
+              min={0}
+              max={100}
+              step={1}
+              defaultValue={selectedRevShare ?? 0}
+              onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', revShare: Number(e.target.value) })}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            License Fee (IP)
+            <input
+              type="number"
+              className="bg-transparent border border-white/20 rounded p-2"
+              min={0}
+              step={0.0001}
+              defaultValue={selectedLicensePrice ?? 0}
+              onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', licensePrice: Number(e.target.value) })}
+            />
+          </label>
+        </div>
+      )}
 
       {/* Progress indicator */}
       {isExecuting && (
