@@ -26,7 +26,6 @@ import type { Hex } from "viem";
 
 export function EnhancedAgentOrchestrator() {
   const chatAgent = useChatAgent();
-  const swapAgent = useSwapAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
   const publicClient = usePublicClient();
