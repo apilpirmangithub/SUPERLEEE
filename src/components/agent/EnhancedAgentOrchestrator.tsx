@@ -41,6 +41,9 @@ export function EnhancedAgentOrchestrator() {
   const [dupCheck, setDupCheck] = useState<{ checked: boolean; found: boolean; tokenId?: string } | null>(null);
   const [showCustomLicense, setShowCustomLicense] = useState(false);
   const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
+  const [selectedPilType, setSelectedPilType] = useState<'open_use' | 'commercial_remix'>('open_use');
+  const [selectedRevShare, setSelectedRevShare] = useState<number>(0);
+  const [selectedLicensePrice, setSelectedLicensePrice] = useState<number>(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -364,7 +367,15 @@ Tx: ${result.txHash}
         pilType: plan.intent.pilType || DEFAULT_LICENSE_SETTINGS.pilType,
       };
 
-      const result = await registerAgent.executeRegister(plan.intent, fileToUse, licenseSettings, customTerms ? { customTerms } : undefined);
+      const merged = { ...licenseSettings };
+      if (selectedPilType) merged.pilType = selectedPilType as any;
+      if (selectedPilType === 'commercial_remix') {
+        if (!isNaN(selectedRevShare)) merged.revShare = selectedRevShare;
+        if (!isNaN(selectedLicensePrice)) merged.licensePrice = selectedLicensePrice;
+      } else {
+        merged.revShare = 0; merged.licensePrice = 0;
+      }
+      const result = await registerAgent.executeRegister(plan.intent, fileToUse, merged, customTerms ? { customTerms } : undefined);
 
       if (result.success) {
         // Show initial success with transaction link
@@ -649,6 +660,14 @@ Thank you.`
                     onCancel={chatAgent.clearPlan}
                     swapState={swapAgent.swapState}
                     registerState={registerAgent.registerState}
+                    selectedPilType={selectedPilType}
+                    selectedRevShare={selectedRevShare}
+                    selectedLicensePrice={selectedLicensePrice}
+                    onLicenseChange={({ pilType, revShare, licensePrice }) => {
+                      if (pilType) setSelectedPilType(pilType);
+                      if (typeof revShare === 'number') setSelectedRevShare(revShare);
+                      if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
+                    }}
                   />
                 )}
               </div>
