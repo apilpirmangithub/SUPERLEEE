@@ -151,8 +151,19 @@ export function Composer({
         )}
 
         {/* Input Area */}
-        <div className="relative">
-          <div className="flex gap-2 rounded-2xl ring-1 ring-white/15 bg-white/8 backdrop-blur-md px-3 py-2 overflow-visible transition-smooth hover:ring-white/25 focus-within:ring-sky-400/50 focus-within:ring-2 hover-glow flex-row">
+        <div className="relative"
+          onDragOver={(e)=>{e.preventDefault(); setIsDragging(true);}}
+          onDragLeave={()=>setIsDragging(false)}
+          onDrop={(e)=>{
+            e.preventDefault(); setIsDragging(false);
+            const items = e.dataTransfer?.files;
+            if (items && items.length > 0) {
+              const f = Array.from(items).find(f=>f.type.startsWith('image/')) || items[0];
+              if (f && onFileSelect) onFileSelect(f);
+            }
+          }}
+        >
+          <div className={`flex gap-2 rounded-2xl ring-1 ring-white/15 bg-white/8 backdrop-blur-md px-3 py-2 overflow-visible transition-smooth hover:ring-white/25 focus-within:ring-sky-400/50 focus-within:ring-2 hover-glow flex-row ${isDragging ? 'outline outline-2 outline-sky-400/60' : ''}`}>
 
 
             {/* Textarea */}
