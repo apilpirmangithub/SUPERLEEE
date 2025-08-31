@@ -35,7 +35,7 @@ export function useRegisterIPAgent() {
     }
   }, [chainId, switchChainAsync]);
 
-  const executeRegister = useCallback(async (intent: RegisterIntent, file: File, licenseSettings?: LicenseSettings) => {
+  const executeRegister = useCallback(async (intent: RegisterIntent, file: File, licenseSettings?: LicenseSettings, options?: { customTerms?: import("@/lib/license/terms").LicenseTermsData }) => {
     try {
       // Ensure we're on the right network
       await ensureAeneid();
