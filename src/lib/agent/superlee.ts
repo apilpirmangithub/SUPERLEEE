@@ -1,5 +1,12 @@
 // src/lib/agent/superlee.ts
 import { findTokenAddress, symbolFor } from "./tokens";
+import {
+  parseCommandWithAI,
+  generateContextualResponse,
+  analyzeImageForIP,
+  imageToBase64,
+  isOpenAIAvailable
+} from "../openai";
 
 /** ===== Types ===== */
 export type ConversationState =
@@ -17,12 +24,20 @@ export type ConversationState =
 export type SuperleeContext = {
   state: ConversationState;
   flow: "register" | "swap" | null;
+  aiEnabled: boolean;
   registerData?: {
     file?: File;
     name?: string;
     description?: string;
     license?: string;
     pilType?: string;
+    aiAnalysis?: {
+      description: string;
+      suggestedTitle: string;
+      detectedObjects: string[];
+      style?: string;
+      mood?: string;
+    };
   };
   swapData?: {
     tokenIn?: string;
