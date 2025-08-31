@@ -110,7 +110,7 @@ export class SuperleeEngine {
     return {
       type: "message",
       text: greetingText,
-      buttons: ["Register IP", "Help"]
+      buttons: ["Register IP", "Browse IP", "Help"]
     };
   }
 
@@ -165,6 +165,13 @@ export class SuperleeEngine {
   }
 
   private async handleGreeting(message: string): Promise<SuperleeResponse> {
+    if (/\b(browse|dashboard|my ip|lihat ip)\b/i.test(message)) {
+      return { type: "message", text: "Membuka Dashboard IP Anda.", links: [{ text: "Open Dashboard", url: "/dashboard" }] };
+    }
+    if (/^(search|cari)\s+(.+)/i.test(message)) {
+      const q = message.replace(/^(search|cari)\s+/i, "").trim();
+      return { type: "message", text: `Hasil pencarian untuk: ${q}`, links: [{ text: "Buka hasil di Dashboard", url: `/dashboard?q=${encodeURIComponent(q)}` }] };
+    }
     if (message.includes("register") || message.includes("ip") || message.includes("mint")) {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
@@ -185,8 +192,8 @@ export class SuperleeEngine {
 
     return {
       type: "message",
-      text: helpResponse || "Silakan pilih Registrasi IP untuk memulai.",
-      buttons: ["Register IP", "Help"]
+      text: helpResponse || "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
+      buttons: ["Register IP", "Browse IP", "Help"]
     };
   }
 
