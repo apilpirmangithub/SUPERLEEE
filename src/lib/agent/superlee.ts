@@ -297,10 +297,12 @@ export class SuperleeEngine {
         return this.handleAmountInput(message);
 
       default:
-        return {
-          type: "message",
-          text: "⚠️ Don't type randomly. Please follow the instructions!"
-        };
+        // Check if user is asking for help
+        if (message.toLowerCase().includes("help") || message.toLowerCase().includes("bantuan")) {
+          return await this.provideFriendlyHelp();
+        }
+
+        return await this.handleUnknownCommand(message);
     }
   }
 
