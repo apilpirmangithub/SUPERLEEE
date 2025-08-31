@@ -47,8 +47,8 @@ export default function DashboardPage() {
   const [isFullScan, setIsFullScan] = useState(false);
 
   const canQuery = useMemo(
-    () => Boolean(isConnected && pc && SPG && address),
-    [isConnected, pc, address]
+    () => Boolean(isConnected && SPG && address),
+    [isConnected, address]
   );
 
   // ---------- Fast path: ERC721Enumerable ----------
