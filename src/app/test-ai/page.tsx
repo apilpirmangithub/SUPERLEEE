@@ -11,7 +11,7 @@ import { AIStatusIndicator } from "@/components/AIStatusIndicator";
 import RagIndexer from "@/components/RagIndexer";
 
 export default function TestAI() {
-  const [testMessage, setTestMessage] = useState("swap 1 WIP to USDC");
+  const [testMessage, setTestMessage] = useState("register this image as IP");
   const [aiResponse, setAiResponse] = useState<any>(null);
   const [contextualResponse, setContextualResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
