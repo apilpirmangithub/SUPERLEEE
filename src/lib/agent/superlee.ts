@@ -685,8 +685,18 @@ export class SuperleeEngine {
   private async generateSmartResponse(fallback: string, context: string): Promise<string | null> {
     if (!this.context.aiEnabled) return fallback;
 
+    let ctx = context;
     try {
-      const response = await generateContextualResponse(fallback, context);
+      if (this.context.ragIndex && this.context.lastUserMessage) {
+        const [q] = await embedTexts([this.context.lastUserMessage]);
+        const hits = topK(this.context.ragIndex, q, 5);
+        const snippets = hits.map(h => h.text.slice(0, 600)).join('\n---\n');
+        ctx = `${context}\n\nRelevant docs:\n${snippets}`;
+      }
+    } catch {}
+
+    try {
+      const response = await generateContextualResponse(fallback, ctx);
       return response || fallback;
     } catch (error) {
       console.error("AI response generation failed:", error);
