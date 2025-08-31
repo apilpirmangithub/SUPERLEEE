@@ -55,19 +55,15 @@ export async function parseCommandWithAI(message: string): Promise<AICommandPars
           role: 'system',
           content: `You are a helpful assistant that parses user commands for a DeFi/IP platform. 
           
-Users can either:
-1. SWAP tokens (examples: "swap 1 WIP to USDC", "trade 100 USDT for ETH", "convert BTC to USDC")
-2. REGISTER IP (examples: "register this image", "mint my artwork as NFT", "create IP for my photo")
-
-Supported tokens: WIP, USDC, WETH, ETH, BTC, USDT
+Users can:
+1. REGISTER IP (examples: "register this image", "mint my artwork as NFT", "create IP for my photo")
 
 Respond with a JSON object containing:
-- intent: "swap" | "register" | "unknown" 
+- intent: "register" | "unknown"
 - confidence: 0-1 (how confident you are)
 - extractedData: relevant data extracted from the message
 - naturalResponse: a friendly response acknowledging what the user wants
 
-For swap commands, extract: tokenIn, tokenOut, amount, slippage (if mentioned)
 For register commands, extract: title, description, license type if mentioned`
         },
         {
