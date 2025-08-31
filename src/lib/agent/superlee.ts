@@ -6,7 +6,6 @@ export type ConversationState =
   | "awaiting_sup"
   | "greeting"
   | "register_awaiting_file"
-  | "register_analyzing_ai"
   | "register_awaiting_name"
   | "register_awaiting_description"
   | "register_awaiting_license"
@@ -20,8 +19,6 @@ export type SuperleeContext = {
   flow: "register" | "swap" | null;
   registerData?: {
     file?: File;
-    aiDetected?: boolean;
-    aiConfidence?: number;
     name?: string;
     description?: string;
     license?: string;
@@ -65,16 +62,14 @@ const RE_ADDR = /0x[a-fA-F0-9]{40}/;
 const RE_AMOUNT = /(\d[\d.,]*)/;
 
 /** ===== License Options ===== */
-function getLicenseOptions(aiDetected: boolean = false): string[] {
+function getLicenseOptions(): string[] {
   const options = [
     "Remix Allowed",
     "Commercial Use Allowed", 
     "Non-Commercial"
   ];
   
-  if (!aiDetected) {
-    options.push("AI Training Allowed");
-  }
+  options.push("AI Training Allowed");
   
   return options;
 }
@@ -165,7 +160,7 @@ export class SuperleeEngine {
     };
   }
 
-  processMessage(message: string, file?: File, aiDetectionResult?: { isAI: boolean; confidence: number }): SuperleeResponse {
+  processMessage(message: string, file?: File): SuperleeResponse {
     const cleaned = message.trim().toLowerCase();
 
     // Easter eggs only work in "awaiting_sup" state (before SUP is typed)
@@ -212,15 +207,10 @@ export class SuperleeEngine {
       }
     }
 
-    // Special handling for "Continue Registration" with file and AI results
-    if (message.toLowerCase().includes("continue registration") && file && aiDetectionResult) {
-      // Set up the register data with the provided file and AI results
+    // Special handling for "Continue Registration" with file
+    if (message.toLowerCase().includes("continue registration") && file) {
       this.context.flow = "register";
-      this.context.registerData = {
-        file,
-        aiDetected: aiDetectionResult.isAI,
-        aiConfidence: aiDetectionResult.confidence
-      };
+      this.context.registerData = { file };
       this.context.state = "register_awaiting_name";
 
       return {
@@ -238,20 +228,12 @@ export class SuperleeEngine {
 
       case "register_awaiting_file":
         if (file) {
-          return this.handleFileUpload(file, aiDetectionResult);
+          return this.handleFileUpload(file);
         }
         return {
           type: "awaiting_file"
         };
 
-      case "register_analyzing_ai":
-        if (aiDetectionResult) {
-          return this.handleAIAnalysisComplete(aiDetectionResult);
-        }
-        return {
-          type: "message",
-          text: "🔍 Analyzing image for AI detection..."
-        };
 
       case "register_awaiting_name":
         if (message.toLowerCase().includes("continue") || message.toLowerCase().includes("lanjutkan")) {
@@ -329,49 +311,19 @@ export class SuperleeEngine {
     };
   }
 
-  private handleFileUpload(file: File, aiResult?: { isAI: boolean; confidence: number }): SuperleeResponse {
+  private handleFileUpload(file: File): SuperleeResponse {
     if (!this.context.registerData) {
       this.context.registerData = {};
     }
 
     this.context.registerData.file = file;
-
-    if (aiResult) {
-      // AI detection sudah selesai, langsung proses
-      return this.handleAIAnalysisComplete(aiResult);
-    } else {
-      // File baru diupload, tunggu AI detection
-      this.context.state = "register_analyzing_ai";
-      return {
-        type: "message",
-        text: "📁 File uploaded successfully!\n\n🔍 Analyzing image for AI detection... Please wait."
-      };
-    }
-  }
-
-  private handleAIAnalysisComplete(aiResult: { isAI: boolean; confidence: number }): SuperleeResponse {
-    if (!this.context.registerData) {
-      this.context.registerData = {};
-    }
-
-    this.context.registerData.aiDetected = aiResult.isAI;
-    this.context.registerData.aiConfidence = aiResult.confidence;
-
-    let response = `✅ AI analysis completed!\n\n`;
-
-    if (aiResult.isAI) {
-      response += `🤖 Result: This image was created by AI (confidence: ${(aiResult.confidence * 100).toFixed(1)}%)\n\n⚠️ Note: "AI Training Allowed" license option will not be available for AI-generated content.`;
-    } else {
-      response += `👨‍🎨 Result: This image was created manually/originally (confidence: ${((1 - aiResult.confidence) * 100).toFixed(1)}%)\n\n✅ All license options are available for this content.`;
-    }
-
     this.context.state = "register_awaiting_name";
     return {
-      type: "message",
-      text: response,
-      buttons: ["Continue Registration"]
+      type: "awaiting_input",
+      prompt: "Perfect! What should we call this IP? (Enter a title/name)"
     };
   }
+
 
   private handleNameInput(name: string): SuperleeResponse {
     if (!this.context.registerData) {
@@ -395,17 +347,12 @@ export class SuperleeEngine {
     this.context.registerData.description = description.trim();
     this.context.state = "register_awaiting_license";
     
-    const aiDetected = this.context.registerData.aiDetected || false;
-    const licenseOptions = getLicenseOptions(aiDetected);
-    
+    const licenseOptions = getLicenseOptions();
+
     let message = "Which license type would you like to choose?\n\n";
     licenseOptions.forEach((option, index) => {
       message += `${index + 1}. ${option}\n`;
     });
-    
-    if (aiDetected) {
-      message += "\n⚠️ Note: AI Training Allowed is not available for AI-generated content.";
-    }
     
     return {
       type: "message",
@@ -435,8 +382,7 @@ export class SuperleeEngine {
     const plan = [
       `Name IP : "${this.context.registerData.name}"`,
       `Description: "${this.context.registerData.description}"`,
-      `License: ${license}`,
-      `AI Detected: ${this.context.registerData.aiDetected ? 'Yes' : 'No'}`
+      `License: ${license}`
     ];
     
     return {

@@ -1,6 +1,6 @@
 # SightEngine AI Detection Setup
 
-SightEngine is a content moderation API that includes AI-generated content detection. It's the recommended service for detecting AI-generated images in the IP Gatekeeper.
+SightEngine is a content moderation API that includes AI-generated content detection. It's the recommended service for detecting AI-generated images in the app.
 
 ## 🚀 Quick Setup
 
@@ -26,7 +26,7 @@ SIGHTENGINE_API_SECRET=your_api_secret_here
 ```
 
 ### 4. Test the Integration
-You can test if it's working by uploading an image in the IP Gatekeeper interface. The AI detection should show:
+You can test if it's working by uploading an image in the Register IP panel. The AI detection should show:
 - Source: "sightengine" (instead of "simulation")
 - More accurate AI confidence scores
 

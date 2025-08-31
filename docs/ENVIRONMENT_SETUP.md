@@ -136,7 +136,7 @@ curl -X POST https://api.sightengine.com/1.0/check.json \
 ### **3. Test Application:**
 1. Start development server: `npm run dev`
 2. Open browser: `http://localhost:3000`
-3. Try uploading an image in IP Gatekeeper
+3. Try uploading an image in the Register IP panel
 4. Check AI detection works (should show "sightengine" source)
 5. Try registering an IP asset
 

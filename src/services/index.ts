@@ -1,19 +1,6 @@
 // AI Detection Service
-export async function detectAI(imageBuffer: Buffer): Promise<{ isAI: boolean; confidence: number }> {
-  try {
-    const imageBase64 = imageBuffer.toString('base64');
-    const response = await fetch('/api/detect-ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: imageBase64 }),
-    });
-    
-    if (!response.ok) throw new Error('AI detection API failed');
-    return await response.json();
-  } catch (error) {
-    console.error('detectAI error:', error);
-    return { isAI: false, confidence: 0 };
-  }
+export async function detectAI(_imageBuffer: Buffer): Promise<{ isAI: boolean; confidence: number }> {
+  return { isAI: false, confidence: 0 };
 }
 
 // IPFS Upload Service
@@ -54,8 +41,14 @@ export async function uploadToIPFS(data: Buffer | string, filename?: string): Pr
 // OpenAI IP status check
 export async function detectIPStatus(file: File): Promise<{ result: string }> {
   try {
+    // Compress to speed up upload and analysis without losing key details
+    const maxW = 1024;
+    const maxH = 1024;
+    const quality = 0.8;
+    const compressed = await compressImage(file, maxW, maxH, quality);
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed);
 
     const response = await fetch('/api/ip-status', {
       method: 'POST',

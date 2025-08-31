@@ -82,7 +82,7 @@ export function useChatAgent() {
     }, delay);
   }, []);
 
-  const processPrompt = useCallback((prompt: string, file?: File, aiDetectionResult?: { isAI: boolean; confidence: number }) => {
+  const processPrompt = useCallback((prompt: string, file?: File) => {
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) return;
 
@@ -95,7 +95,7 @@ export function useChatAgent() {
     // Simulate typing and then process
     simulateTyping(() => {
       // Process with Superlee engine
-      const response = superleeEngine.processMessage(trimmedPrompt, file, aiDetectionResult);
+      const response = superleeEngine.processMessage(trimmedPrompt, file);
 
       if (response.type === "message") {
         // Only add message if text is not empty (to handle silent responses)

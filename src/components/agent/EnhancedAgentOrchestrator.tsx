@@ -14,7 +14,7 @@ import { PlanBox } from "./PlanBox";
 import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
-import { detectAI, fileToBuffer, detectIPStatus } from "@/services";
+import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
@@ -30,7 +30,6 @@ export function EnhancedAgentOrchestrator() {
   const publicClient = usePublicClient();
   
   const [toast, setToast] = useState<string | null>(null);
-  const [aiDetectionResult, setAiDetectionResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedFile, setAnalyzedFile] = useState<File | null>(null);
   const [lastDHash, setLastDHash] = useState<string | null>(null);
@@ -45,7 +44,7 @@ export function EnhancedAgentOrchestrator() {
     chatAgent.newChat();
     try { fileUpload.removeFile(); } catch {}
     setAnalyzedFile(null);
-    setAiDetectionResult(null);
+    
     setReferenceFile(null);
     setAwaitingIdentity(false);
     setShowCamera(false);
@@ -58,7 +57,7 @@ export function EnhancedAgentOrchestrator() {
     chatAgent.openSession(id);
     try { fileUpload.removeFile(); } catch {}
     setAnalyzedFile(null);
-    setAiDetectionResult(null);
+    
     setReferenceFile(null);
     setAwaitingIdentity(false);
     setShowCamera(false);
@@ -97,12 +96,12 @@ export function EnhancedAgentOrchestrator() {
     if (!fileUpload.file) return;
 
     setIsAnalyzing(true);
-    setAiDetectionResult(null);
+    
 
     // Add immediate loading message when starting analysis
     const loadingMessage = {
       role: "agent" as const,
-      text: "Wait a moment, let me analyze your image for AI and IP safety",
+      text: "Wait a moment, let me analyze your image for IP safety",
       ts: Date.now(),
       isLoading: true
     };
@@ -122,24 +121,14 @@ export function EnhancedAgentOrchestrator() {
     }, 100);
 
     try {
-      // Run AI detection, IP status, and whitelist in parallel
-      const bufferPromise = fileToBuffer(currentFile);
-      const aiPromise = bufferPromise.then((buffer) => detectAI(buffer));
+      // Run IP status and whitelist in parallel
       const mode = (process.env.NEXT_PUBLIC_IP_STATUS_MODE || 'client').toLowerCase();
       const clientIPText = 'Status: Local assessment\nRisk: Medium\nTolerance: Proceed with caution';
       const ipPromise = mode === 'server' ? detectIPStatus(currentFile) : Promise.resolve({ result: clientIPText });
       const wlPromise = isWhitelistedImage(currentFile);
 
-      const [aiResultSettled, ipResultSettled, wlSettled] = await Promise.allSettled([aiPromise, ipPromise, wlPromise]);
+      const [ipResultSettled, wlSettled] = await Promise.allSettled([ipPromise, wlPromise]);
 
-      // Handle AI detection result
-      let aiResult: { isAI: boolean; confidence: number } = { isAI: false, confidence: 0 };
-      if (aiResultSettled.status === 'fulfilled') {
-        aiResult = aiResultSettled.value as any;
-        setAiDetectionResult({ ...aiResult, status: 'completed' });
-      } else {
-        setAiDetectionResult({ isAI: false, confidence: 0, status: 'failed' });
-      }
 
       // Handle IP status result
       let ipText = "Status: Unknown\nRisk: Unable to determine\nTolerance: Good to register, please verify manually";
@@ -153,11 +142,6 @@ export function EnhancedAgentOrchestrator() {
         ipText = `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register`;
       }
 
-      const aiText = aiResult.isAI
-        ? `Analysis complete! Your image is AI generated with ${((aiResult.confidence || 0) * 100).toFixed(1)}% confidence.
-
-Note: AI-generated images cannot be licensed for AI training purposes - it doesn't make sense to train AI with AI-generated content again!`
-        : `Analysis complete! Your image appears to be real/human-made with ${((aiResult.confidence || 0) * 100).toFixed(1)}% confidence.`;
 
       // Normalize OpenAI response for non-whitelisted: don't allow "Good to register" unless Risk: Low
       if (!wl.whitelisted) {
@@ -181,7 +165,6 @@ Note: AI-generated images cannot be licensed for AI training purposes - it doesn
       }
 
       setLastDHash(wl.hash || null);
-      const combinedText = `${aiText}\n\n${ipText}`;
 
       // Duplicate check (after safety analysis)
       let dupFound = false;
@@ -256,7 +239,7 @@ Note: AI-generated images cannot be licensed for AI training purposes - it doesn
 
       // If duplicate, hide safe IP text and show remix tolerance guidance
       const duplicateBlockText = `\n\nDuplicate detected: this image is already registered as IP${dupTokenId ? ` (Token ID: ${dupTokenId})` : ''}. Registration is blocked.\nTolerance: Allowed to register as a remix`;
-      const textToShow = dupFound ? `${aiText}${duplicateBlockText}` : combinedText;
+      const textToShow = dupFound ? `${ipText}${duplicateBlockText}` : ipText;
 
       // Update the loading message to show results with appropriate next step and image preview
       chatAgent.updateLastMessage({
@@ -267,12 +250,6 @@ Note: AI-generated images cannot be licensed for AI training purposes - it doesn
       });
     } catch (error) {
       console.error('Analysis failed:', error);
-      setAiDetectionResult({
-        isAI: false,
-        confidence: 0,
-        status: 'failed'
-      });
-
       // Update loading message to show error
       const errorText = "❌ Sorry, I couldn't analyze the image. But don't worry, you can still proceed with registration!";
 
@@ -389,8 +366,7 @@ Tx: ${result.txHash}
 
 Your image has been successfully registered as IP!
 
-License Type: ${result.licenseType}
-AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) * 100).toFixed(1)}%)`;
+License Type: ${result.licenseType}`;
 
             // Create message with image and links
             const message = {
@@ -429,7 +405,6 @@ AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) 
       chatAgent.clearPlan();
       registerAgent.resetRegister();
       setAnalyzedFile(null);
-      setAiDetectionResult(null);
     }
   }, [
     chatAgent,
@@ -437,8 +412,7 @@ AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) 
     registerAgent,
     analyzedFile,
     publicClient,
-    explorerBase,
-    aiDetectionResult
+    explorerBase
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -452,7 +426,7 @@ AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) 
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
     } else if (buttonText === "Continue Registration") {
-      chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined, aiDetectionResult);
+      chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
       setAwaitingIdentity(true);
@@ -491,7 +465,7 @@ Thank you.`
     } else {
       chatAgent.processPrompt(buttonText);
     }
-  }, [chatAgent, analyzedFile, aiDetectionResult, lastDHash]);
+  }, [chatAgent, analyzedFile, lastDHash]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -531,7 +505,7 @@ Thank you.`
           setAwaitingIdentity(false);
           setToast('Identity verified ✅');
           chatAgent.addMessage('agent', `Identity verified (similarity ${sim.toFixed(3)} ≥ ${simTh}). Proceeding to registration.`);
-          chatAgent.processPrompt('Continue Registration', referenceFile, aiDetectionResult);
+          chatAgent.processPrompt('Continue Registration', referenceFile);
           return;
         }
         setToast('Identity mismatch ❌');
@@ -575,7 +549,7 @@ Thank you.`
         setAwaitingIdentity(false);
         setToast('Identity verified ✅');
         chatAgent.addMessage('agent', `Identity verified (distance ${best} ≤ ${th}). Proceeding to registration.`);
-        chatAgent.processPrompt('Continue Registration', referenceFile, aiDetectionResult);
+        chatAgent.processPrompt('Continue Registration', referenceFile);
       } else {
         setToast('Identity mismatch ❌');
         chatAgent.addMessage('agent', `Identity check failed (distance ${best} > ${th}). Please retake photo or upload proof.`);
@@ -585,7 +559,7 @@ Thank you.`
       setToast('Identity check error ❌');
       chatAgent.addMessage('agent', 'Identity verification encountered an error. Please try again.');
     }
-  }, [referenceFile, aiDetectionResult, chatAgent]);
+  }, [referenceFile, chatAgent]);
 
   return (
     <div className="mx-auto max-w-[1400px] px-2 sm:px-4 md:px-6 overflow-x-hidden">
@@ -658,7 +632,7 @@ Thank you.`
             {/* Composer */}
             <div className="shrink-0">
               <Composer
-                onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined, aiDetectionResult)}
+                onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined)}
                 status={chatAgent.status}
                 file={fileUpload.file}
                 onFileSelect={fileUpload.handleFileSelect}
