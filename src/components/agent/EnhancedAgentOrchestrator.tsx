@@ -121,7 +121,7 @@ export function EnhancedAgentOrchestrator() {
     }, 100);
 
     try {
-      // Run AI detection, IP status, and whitelist in parallel
+      // Run IP status and whitelist in parallel
       const mode = (process.env.NEXT_PUBLIC_IP_STATUS_MODE || 'client').toLowerCase();
       const clientIPText = 'Status: Local assessment\nRisk: Medium\nTolerance: Proceed with caution';
       const ipPromise = mode === 'server' ? detectIPStatus(currentFile) : Promise.resolve({ result: clientIPText });
