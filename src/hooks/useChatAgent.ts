@@ -230,5 +230,7 @@ export function useChatAgent() {
     newChat,
     openSession,
     getEngineFile,
+    // expose engine for advanced controls (e.g., setRagIndex)
+    engine: superleeEngine,
   };
 }
