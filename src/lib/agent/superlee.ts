@@ -27,6 +27,8 @@ export type SuperleeContext = {
   state: ConversationState;
   flow: "register" | "swap" | null;
   aiEnabled: boolean;
+  ragIndex?: RagIndex | null;
+  lastUserMessage?: string;
   registerData?: {
     file?: File;
     name?: string;
