@@ -69,9 +69,7 @@ function getLicenseOptions(): string[] {
     "Non-Commercial"
   ];
   
-  if (!aiDetected) {
-    options.push("AI Training Allowed");
-  }
+  options.push("AI Training Allowed");
   
   return options;
 }
