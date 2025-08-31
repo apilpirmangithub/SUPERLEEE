@@ -129,14 +129,6 @@ export function EnhancedAgentOrchestrator() {
 
       const [ipResultSettled, wlSettled] = await Promise.allSettled([ipPromise, wlPromise]);
 
-      // Handle AI detection result
-      let aiResult: { isAI: boolean; confidence: number } = { isAI: false, confidence: 0 };
-      if (aiResultSettled.status === 'fulfilled') {
-        aiResult = aiResultSettled.value as any;
-        setAiDetectionResult({ ...aiResult, status: 'completed' });
-      } else {
-        setAiDetectionResult({ isAI: false, confidence: 0, status: 'failed' });
-      }
 
       // Handle IP status result
       let ipText = "Status: Unknown\nRisk: Unable to determine\nTolerance: Good to register, please verify manually";
