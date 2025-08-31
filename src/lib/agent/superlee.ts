@@ -687,6 +687,63 @@ export class SuperleeEngine {
     }
   }
 
+  /** ===== Enhanced Error Handling ===== */
+
+  private async handleUnknownCommand(message: string): Promise<SuperleeResponse> {
+    const fallbackText = "I didn't understand that. I can help you swap tokens or register IP. What would you like to do?";
+
+    if (this.context.aiEnabled) {
+      const smartResponse = await this.generateSmartResponse(
+        `User said: "${message}" but I don't understand`,
+        "User typed something unclear - help them understand available options"
+      );
+
+      if (smartResponse) {
+        return {
+          type: "message",
+          text: smartResponse,
+          buttons: ["Register IP", "Swap Token", "Help"]
+        };
+      }
+    }
+
+    return {
+      type: "message",
+      text: fallbackText,
+      buttons: ["Register IP", "Swap Token"]
+    };
+  }
+
+  private async provideFriendlyHelp(): Promise<SuperleeResponse> {
+    const helpText = `Here's what I can do for you:
+
+🎨 **Register IP**: Upload your creative work and mint it as NFT with proper licensing
+🔄 **Swap Tokens**: Trade cryptocurrencies using the best rates from multiple DEXs
+
+Just tell me what you'd like to do!`;
+
+    if (this.context.aiEnabled) {
+      const aiHelp = await this.generateSmartResponse(
+        "User asked for help",
+        "Provide comprehensive help about SuperLee's capabilities"
+      );
+
+      if (aiHelp) {
+        return {
+          type: "message",
+          text: aiHelp,
+          buttons: ["Register IP", "Swap Token"]
+        };
+      }
+    }
+
+    return {
+      type: "message",
+      text: helpText,
+      buttons: ["Register IP", "Swap Token"]
+    };
+  }
+
   private async analyzeUploadedImage(file: File): Promise<void> {
     if (!this.context.aiEnabled || !this.context.registerData) return;
 
