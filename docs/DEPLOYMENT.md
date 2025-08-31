@@ -18,9 +18,6 @@ This guide covers deploying the AI Agent DApp to production environments.
    - Get from: https://pinata.cloud
    - Set: `PINATA_JWT`
 
-4. **SightEngine API** (Optional - for AI content detection)
-   - Get from: https://sightengine.com
-   - Set: `SIGHTENGINE_API_USER`, `SIGHTENGINE_API_SECRET`
 
 ### ✅ Environment Configuration
 
@@ -60,7 +57,7 @@ vercel --prod
 ```
 
 **Environment Variables in Vercel:**
-- Go to Project Settings → Environment Variables
+- Go to Project Settings �� Environment Variables
 - Add all variables from `.env.example`
 - Set appropriate values for production
 
@@ -204,7 +201,7 @@ const cspHeader = `
   script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.jsdelivr.net;
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: gateway.pinata.cloud ipfs.io;
-  connect-src 'self' api.openai.com api.sightengine.com testnet.storyrpc.io;
+  connect-src 'self' api.openai.com testnet.storyrpc.io;
   font-src 'self';
   object-src 'none';
   base-uri 'self';
@@ -240,7 +237,6 @@ export default {
 **❌ Server Only (No NEXT_PUBLIC_):**
 - `OPENAI_API_KEY`
 - `PINATA_JWT`
-- `SIGHTENGINE_API_SECRET`
 
 ## 📊 Monitoring & Analytics
 
