@@ -75,3 +75,7 @@ export function useAIStatus() {
 
   return isAIAvailable;
 }
+  }, []);
+
+  return isAIAvailable;
+}
