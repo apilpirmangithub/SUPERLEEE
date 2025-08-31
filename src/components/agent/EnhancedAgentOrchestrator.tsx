@@ -447,28 +447,7 @@ License Type: ${result.licenseType}`;
       setAwaitingIdentity(true);
       setShowCamera(true);
     } else if (buttonText === "Submit for Review") {
-      const email = "apilpirman@gmail.com";
-      const subject = encodeURIComponent("IP Review Request");
-      const body = encodeURIComponent(
-        `Hello,
-
-I would like to submit my IP asset for manual review with permissions.
-
-Included (recommended):
-- Proof of ownership or authorization letter
-- License/permission documents
-- Source references and links
-- Contact info (name, wallet address)
-
-Thank you.`
-      );
-      const mailto = `mailto:${email}?subject=${subject}&body=${body}`;
-      chatAgent.addCompleteMessage({
-        role: "agent",
-        text: `This asset may be risky. Please submit your documents for manual review via email: ${email}\nAttach authorization letters, license proofs, ownership evidence, references, and your contact info.`,
-        ts: Date.now(),
-        links: [{ text: "Open email to submit documents", url: mailto }]
-      });
+      setShowManualReview(true);
     } else if (buttonText === "Copy dHash") {
       if (lastDHash) {
         navigator.clipboard.writeText(lastDHash).then(() => {
