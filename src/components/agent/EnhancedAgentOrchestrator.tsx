@@ -250,12 +250,6 @@ export function EnhancedAgentOrchestrator() {
       });
     } catch (error) {
       console.error('Analysis failed:', error);
-      setAiDetectionResult({
-        isAI: false,
-        confidence: 0,
-        status: 'failed'
-      });
-
       // Update loading message to show error
       const errorText = "❌ Sorry, I couldn't analyze the image. But don't worry, you can still proceed with registration!";
 
