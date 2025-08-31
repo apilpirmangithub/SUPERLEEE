@@ -96,24 +96,27 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-You are an IP compliance assistant. Decide if an image is safe to register as IP.
+You are an IP compliance assistant. Decide if an image is safe to register as IP AND whether it is AI-generated.
 Return ONLY a raw JSON object (no backticks, no markdown, no explanations) with keys EXACTLY:
 {
   "status": "...",
   "risk": "...",
-  "tolerance": "..."
+  "tolerance": "...",
+  "ai_generated": true | false,
+  "ai_confidence": 0.0
 }
 Rules:
 - Be conservative by default. If unsure, set risk to "Medium" and tolerance to a cautionary message.
 - Only use tolerance starting with "Good to register" when you are confident and risk is "Low".
 - Evaluate: logos/brands, copyrighted characters, watermarks, visible text, faces/identity, tracing/derivatives, NSFW/illegal.
-- Keep each field ≤ 280 chars. No extra fields, no prose, no code fences.
+- For ai_generated, output a boolean. For ai_confidence, output a number from 0 to 1 (two decimals max).
+- Keep each text field ≤ 280 chars. No extra fields, no prose, no code fences.
 `
         },
         {
           role: "user",
           content: [
-            { type: "text", text: "Check if this image is safe to register as IP. Return only the JSON object defined (no backticks/markdown)." },
+            { type: "text", text: "Analyze this image for IP safety and whether it's AI-generated. Return only the JSON object defined (no backticks/markdown)." },
             { type: "image_url", image_url: { url: dataUrl } }
           ] as any
         }
@@ -122,7 +125,7 @@ Rules:
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let parsed: { status?: string; risk?: string; tolerance?: string } = {};
+    let parsed: { status?: string; risk?: string; tolerance?: string; ai_generated?: boolean; ai_confidence?: number } = {};
     const extracted = extractJsonObject(raw);
     if (extracted && typeof extracted === 'object') {
       parsed = extracted as any;
@@ -130,13 +133,21 @@ Rules:
       parsed = {
         status: clip(raw),
         risk: "Not valid JSON, verify manually",
-        tolerance: "Proceed with caution, verify manually"
+        tolerance: "Proceed with caution, verify manually",
+        ai_generated: false,
+        ai_confidence: 0
       };
     }
 
     let status = clip(parsed.status ?? "");
     let risk = clip(parsed.risk ?? "");
     let tolerance = clip(parsed.tolerance ?? "");
+
+    // Normalize AI fields
+    let aiGenerated = Boolean(parsed.ai_generated);
+    let aiConfidence = typeof parsed.ai_confidence === 'number' ? parsed.ai_confidence : 0;
+    if (!isFinite(aiConfidence as number)) aiConfidence = 0;
+    aiConfidence = Math.max(0, Math.min(1, Number(aiConfidence.toFixed(2))));
 
     const strict = (process.env.IP_STATUS_STRICT ?? 'true') === 'true';
     if (strict) {
@@ -159,12 +170,14 @@ Rules:
       if (!tolerance) tolerance = 'Proceed with caution';
     }
 
+    const aiLine = `AI: ${aiGenerated ? 'AI-generated' : 'Original'} (${Math.round(aiConfidence * 100)}%)`;
     const formatted =
 `Status: ${status}
 Risk: ${risk}
-Tolerance: ${tolerance}`;
+Tolerance: ${tolerance}
+${aiLine}`;
 
-    return Response.json({ result: formatted });
+    return Response.json({ result: formatted, aiGenerated, aiConfidence });
   } catch (err: any) {
     console.error(err);
     return Response.json({ error: "Something went wrong." }, { status: 500 });
