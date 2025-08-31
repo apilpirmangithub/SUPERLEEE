@@ -136,12 +136,12 @@ Rules:
       ],
       temperature: 0.1,
       top_p: 0,
-      max_tokens: 200,
+      max_tokens: 160,
       response_format: { type: "json_object" }
-    }, { timeout: 8000 });
+    }, { timeout: 7000 });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let parsed: { status?: string; risk?: string; tolerance?: string; ai_generated?: boolean; ai_confidence?: number; fair_use?: boolean; fair_use_reason?: string } = {};
+    let parsed: { status?: string; risk?: string; tolerance?: string; ai_generated?: boolean; ai_confidence?: number; fair_use?: boolean; fair_use_reason?: string; flags?: Record<string, any> } = {};
     const extracted = extractJsonObject(raw);
     if (extracted && typeof extracted === 'object') {
       parsed = extracted as any;
@@ -153,7 +153,8 @@ Rules:
         ai_generated: false,
         ai_confidence: 0,
         fair_use: false,
-        fair_use_reason: ""
+        fair_use_reason: "",
+        flags: {}
       };
     }
 
@@ -171,19 +172,42 @@ Rules:
     const fairUse = Boolean(parsed.fair_use);
     const fairUseReason = clip(parsed.fair_use_reason ?? "");
 
+    // Normalize Flags
+    const f = parsed.flags || {};
+    const flags = {
+      logo_brand: !!f.logo_brand,
+      copyrighted_character: !!f.copyrighted_character,
+      watermark: !!f.watermark,
+      visible_text: !!f.visible_text,
+      face_identity: !!f.face_identity,
+      nsfw: !!f.nsfw,
+      illegal: !!f.illegal,
+      derivative_trace: !!f.derivative_trace,
+    };
+
     const strict = (process.env.IP_STATUS_STRICT ?? 'true') === 'true';
     if (strict) {
       const r = (risk || '').toLowerCase();
       const t = (tolerance || '').toLowerCase();
       const uncertain = r.includes('unknown') || r.includes('unable') || r.includes('unsure') || r.includes('cannot') || r.trim() === '';
 
-      if (fairUse) {
+      const hasSevere = flags.illegal || flags.nsfw;
+      const rightsSensitive = flags.logo_brand || flags.copyrighted_character || flags.watermark || flags.derivative_trace;
+
+      if (hasSevere) {
+        risk = 'High';
+        tolerance = 'Do not register';
+      } else if (fairUse) {
         risk = 'Low';
         tolerance = 'Good to register (fair use)';
+      } else if (!rightsSensitive && !flags.face_identity) {
+        risk = 'Low';
+        tolerance = 'Good to register';
       } else if (uncertain) {
         risk = 'Medium';
         tolerance = 'Proceed with caution, verify manually';
       }
+
       if (t.startsWith('good to register') && !r.includes('low') && !fairUse) {
         tolerance = 'Proceed with caution';
       }
@@ -197,14 +221,16 @@ Rules:
 
     const aiLine = `AI: ${aiGenerated ? 'AI-generated' : 'Original'} (${Math.round(aiConfidence * 100)}%)`;
     const fairUseLine = `Fair Use: ${fairUse ? 'Yes' : 'No'}${fairUse && fairUseReason ? ` — ${fairUseReason}` : ''}`;
+    const flagsLine = `Flags: ${Object.entries(flags).filter(([_,v])=>v).map(([k])=>k).join(', ') || 'None'}`;
     const formatted =
 `Status: ${status}
 Risk: ${risk}
 Tolerance: ${tolerance}
 ${aiLine}
-${fairUseLine}`;
+${fairUseLine}
+${flagsLine}`;
 
-    return Response.json({ result: formatted, aiGenerated, aiConfidence, fairUse, fairUseReason });
+    return Response.json({ result: formatted, aiGenerated, aiConfidence, fairUse, fairUseReason, flags });
   } catch (err: any) {
     console.error(err);
     return Response.json({ error: "Something went wrong." }, { status: 500 });
