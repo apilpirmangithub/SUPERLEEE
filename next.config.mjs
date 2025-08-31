@@ -37,10 +37,9 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
+          // Allow embedding in Builder preview and vercel/fly iframes via CSP instead of X-Frame-Options
+          // X-Frame-Options is deprecated in favor of frame-ancestors
+          // Removed to avoid blocking iframe preview
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -56,6 +55,10 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=*, microphone=*, geolocation=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.builder.io https://*.vercel.app https://*.fly.dev",
           }
         ],
       },
