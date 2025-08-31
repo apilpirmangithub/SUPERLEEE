@@ -223,7 +223,7 @@ export class SuperleeEngine {
       if (cleaned.includes("who is mushy") || cleaned.includes("mushy")) {
         return {
           type: "message",
-          text: "Mushy? Oh, that's the best CM in the world, no doubt. 😎",
+          text: "Mushy? Oh, that's the best CM in the world, no doubt. ����",
           image: {
             url: "https://cdn.builder.io/api/v1/image/assets%2F63395bcf097f453d9ecb84f69d3bcf7c%2F13e4207002674f1985b1c9ba838a17ba?format=webp&width=800",
             alt: "Mushy - The best CM in the world"
@@ -304,17 +304,44 @@ export class SuperleeEngine {
     }
   }
 
-  private handleSupTrigger(message: string): SuperleeResponse {
+  private async handleSupTrigger(message: string): Promise<SuperleeResponse> {
     if (message === "sup") {
       this.context.state = "greeting";
+
+      let responseText = "Hey! What can I help you with? 😊";
+
+      if (this.context.aiEnabled) {
+        const aiResponse = await this.generateSmartResponse(
+          "User just said SUP to start conversation",
+          "User initiated conversation - be friendly and helpful"
+        );
+        if (aiResponse) {
+          responseText = aiResponse;
+        }
+      }
+
       return {
         type: "message",
-        text: "Hey! What can I help you with? 😊",
+        text: responseText,
         buttons: ["Register IP", "Swap Token"]
       };
     }
 
-    // If user types anything other than "SUP", give warning
+    // If user types anything other than "SUP", give AI-powered helpful response
+    if (this.context.aiEnabled) {
+      const smartResponse = await this.generateSmartResponse(
+        `User typed "${message}" instead of SUP to start`,
+        "User didn't follow instructions - guide them gently to type SUP"
+      );
+
+      if (smartResponse) {
+        return {
+          type: "message",
+          text: smartResponse
+        };
+      }
+    }
+
     return {
       type: "message",
       text: "⚠️ Don't type randomly. Just type \"SUP\" to start!"
