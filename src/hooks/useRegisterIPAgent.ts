@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
-import { createHash } from "crypto";
 import { useStoryClient } from "@/lib/storyClient";
 import { compressImage } from "@/lib/utils/image";
 import { uploadFile, uploadJSON, extractCid, toHttps, toIpfsUri } from "@/lib/utils/ipfs";
