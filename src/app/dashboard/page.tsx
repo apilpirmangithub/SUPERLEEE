@@ -237,9 +237,13 @@ export default function DashboardPage() {
     if (chainId !== AENEID_ID) {
       try {
         await switchChainAsync({ chainId: AENEID_ID });
+        // reload after switch
+        setTimeout(() => loadData(isFullScan), 300);
       } catch (e: any) {
         setError(e?.message || "Switch network rejected");
       }
+    } else {
+      loadData(isFullScan);
     }
   }
 
