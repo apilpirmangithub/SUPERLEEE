@@ -74,11 +74,11 @@ export function useChatAgent() {
     });
   }, []);
 
-  const simulateTyping = useCallback((callback: () => void, delay = 800) => {
+  const simulateTyping = useCallback((callback: () => Promise<void> | void, delay = 800) => {
     setIsTyping(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsTyping(false);
-      callback();
+      await callback();
     }, delay);
   }, []);
 
