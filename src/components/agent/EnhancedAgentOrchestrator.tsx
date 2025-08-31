@@ -631,7 +631,6 @@ Thank you.`
                     plan={chatAgent.currentPlan}
                     onConfirm={executePlan}
                     onCancel={chatAgent.clearPlan}
-                    swapState={swapAgent.swapState}
                     registerState={registerAgent.registerState}
                     selectedPilType={selectedPilType}
                     selectedRevShare={selectedRevShare}
