@@ -168,7 +168,8 @@ export class SuperleeEngine {
   async getGreeting(): Promise<SuperleeResponse> {
     let greetingText = "Hey 👋, what do you want to do today? Choose one:";
 
-    if (this.context.aiEnabled) {
+    const allowSmart = (process.env.NEXT_PUBLIC_AI_SMART_RESPONSES ?? 'false') === 'true';
+    if (this.context.aiEnabled && allowSmart) {
       try {
         const aiGreeting = await generateContextualResponse(
           "User just started conversation with SuperLee",
@@ -602,6 +603,21 @@ export class SuperleeEngine {
   /** ===== AI-Powered Methods ===== */
 
   private async tryAICommandParsing(message: string): Promise<SuperleeResponse | null> {
+    // Quick local parsing to avoid AI calls for basic inputs
+    const quick = parseSwapTokens(message);
+    if (quick.tokenIn && quick.tokenOut) {
+      this.context.flow = "swap";
+      this.context.swapData = { tokenIn: quick.tokenIn, tokenOut: quick.tokenOut, amount: quick.amount } as any;
+      if (quick.amount && quick.amount > 0) return this.prepareSwapPlan();
+      this.context.state = "swap_awaiting_amount";
+      return { type: "awaiting_input", prompt: `How much ${quick.tokenIn} do you want to swap?` };
+    }
+    if (/\bregister\b|\bmint\b|\bip\b/i.test(message)) {
+      this.context.flow = "register";
+      this.context.state = "register_awaiting_file";
+      return { type: "message", text: "Alright, please upload your IP file.", buttons: ["Upload File"] };
+    }
+
     if (!this.context.aiEnabled) return null;
 
     try {
@@ -677,9 +693,15 @@ export class SuperleeEngine {
   private async generateSmartResponse(fallback: string, context: string): Promise<string | null> {
     if (!this.context.aiEnabled) return fallback;
 
+    // Skip AI for basic prompts (reduce calls)
+    const allowSmart = (process.env.NEXT_PUBLIC_AI_SMART_RESPONSES ?? 'false') === 'true';
+    const basic = /User wants to (register IP|swap tokens)|User initiated conversation|guide them/i.test(context);
+    if (!allowSmart && basic) return fallback;
+
     let ctx = context;
     try {
-      if (this.context.ragIndex && this.context.lastUserMessage) {
+      // Only use RAG for explicit doc-related queries
+      if (this.context.ragIndex && this.context.lastUserMessage && /whitepaper|story\b|architecture|execution layer|proof of creativity|consensus/i.test(this.context.lastUserMessage)) {
         const [q] = await embedTexts([this.context.lastUserMessage]);
         const hits = topK(this.context.ragIndex, q, 5);
         const snippets = hits.map(h => h.text.slice(0, 600)).join('\n---\n');
