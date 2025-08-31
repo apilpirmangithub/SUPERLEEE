@@ -79,7 +79,6 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
             License Type
             <select
               className="bg-transparent border border-white/20 rounded p-2"
-              value={((typeof (window as any) !== 'undefined') && (undefined)) || (undefined)}
               onChange={(e) => onLicenseChange?.({ pilType: (e.target.value as any) })}
               defaultValue={selectedPilType || 'open_use'}
             >
