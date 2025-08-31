@@ -45,7 +45,7 @@ export function EnhancedAgentOrchestrator() {
     chatAgent.newChat();
     try { fileUpload.removeFile(); } catch {}
     setAnalyzedFile(null);
-    setAiDetectionResult(null);
+    
     setReferenceFile(null);
     setAwaitingIdentity(false);
     setShowCamera(false);
@@ -58,7 +58,7 @@ export function EnhancedAgentOrchestrator() {
     chatAgent.openSession(id);
     try { fileUpload.removeFile(); } catch {}
     setAnalyzedFile(null);
-    setAiDetectionResult(null);
+    
     setReferenceFile(null);
     setAwaitingIdentity(false);
     setShowCamera(false);
@@ -97,7 +97,7 @@ export function EnhancedAgentOrchestrator() {
     if (!fileUpload.file) return;
 
     setIsAnalyzing(true);
-    setAiDetectionResult(null);
+    
 
     // Add immediate loading message when starting analysis
     const loadingMessage = {
