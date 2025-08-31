@@ -14,7 +14,7 @@ import { PlanBox } from "./PlanBox";
 import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
-import { detectAI, fileToBuffer, detectIPStatus } from "@/services";
+import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
