@@ -212,15 +212,10 @@ export class SuperleeEngine {
       }
     }
 
-    // Special handling for "Continue Registration" with file and AI results
-    if (message.toLowerCase().includes("continue registration") && file && aiDetectionResult) {
-      // Set up the register data with the provided file and AI results
+    // Special handling for "Continue Registration" with file
+    if (message.toLowerCase().includes("continue registration") && file) {
       this.context.flow = "register";
-      this.context.registerData = {
-        file,
-        aiDetected: aiDetectionResult.isAI,
-        aiConfidence: aiDetectionResult.confidence
-      };
+      this.context.registerData = { file };
       this.context.state = "register_awaiting_name";
 
       return {
