@@ -82,25 +82,24 @@ const nextConfig = {
         ...config.resolve.fallback,
         fs: false,
       };
-
-      // Stub optional node/dev-only deps pulled by some web3 libs
-      config.resolve.alias = {
-        ...(config.resolve.alias || {}),
-        'pino-pretty': false,
-        encoding: false,
-      };
     } else {
       // Ensure server build does not attempt to bundle browser-specific libs into a shared vendors chunk
       // Keep server optimization defaults from Next.js
       config.optimization.splitChunks = config.optimization.splitChunks || undefined;
     }
 
+    // Stub optional node/dev-only deps pulled by some web3 libs (both server & client)
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'pino-pretty': false,
+      encoding: false,
+    };
+
     return config;
   },
 
   // Experimental features for better performance
   experimental: {
-    optimizeCss: true,
     scrollRestoration: true,
   },
 
@@ -117,3 +116,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
