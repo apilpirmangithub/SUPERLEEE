@@ -20,15 +20,9 @@ function getOpenAIClient(): OpenAI | null {
 
 // Types for OpenAI responses
 export interface AICommandParsing {
-  intent: 'swap' | 'register' | 'unknown';
+  intent: 'register' | 'unknown';
   confidence: number;
   extractedData: {
-    // For swap
-    tokenIn?: string;
-    tokenOut?: string;
-    amount?: number;
-    slippage?: number;
-    // For register
     title?: string;
     description?: string;
     license?: string;
