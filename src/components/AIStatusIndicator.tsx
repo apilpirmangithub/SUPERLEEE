@@ -1,26 +1,36 @@
 "use client";
 
 import React from "react";
-import { Bot, Zap, AlertCircle } from "lucide-react";
-import { getOpenAIStatus } from "@/lib/openai";
+import { Zap, AlertCircle } from "lucide-react";
 
 interface AIStatusIndicatorProps {
   className?: string;
 }
 
+type HealthResponse = {
+  status: string;
+  checks: {
+    openai: { configured: boolean; status: 'ready' | 'not_configured' };
+  };
+};
+
 export function AIStatusIndicator({ className = "" }: AIStatusIndicatorProps) {
   const [status, setStatus] = React.useState<{ available: boolean; error?: string } | null>(null);
 
   React.useEffect(() => {
-    const checkStatus = () => {
-      const aiStatus = getOpenAIStatus();
-      setStatus(aiStatus);
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        const data: HealthResponse = await res.json();
+        const available = data?.checks?.openai?.status === 'ready';
+        setStatus({ available, error: available ? undefined : 'API key not configured' });
+      } catch (e) {
+        setStatus({ available: false, error: 'health endpoint error' });
+      }
     };
 
     checkStatus();
-    // Check status every 30 seconds
     const interval = setInterval(checkStatus, 30000);
-    
     return () => clearInterval(interval);
   }, []);
 
@@ -46,19 +56,22 @@ export function AIStatusIndicator({ className = "" }: AIStatusIndicatorProps) {
   );
 }
 
-// Hook for components that need to know AI status
 export function useAIStatus() {
   const [isAIAvailable, setIsAIAvailable] = React.useState(false);
 
   React.useEffect(() => {
-    const checkStatus = () => {
-      const status = getOpenAIStatus();
-      setIsAIAvailable(status.available);
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        const data: HealthResponse = await res.json();
+        setIsAIAvailable(data?.checks?.openai?.status === 'ready');
+      } catch {
+        setIsAIAvailable(false);
+      }
     };
 
     checkStatus();
     const interval = setInterval(checkStatus, 30000);
-    
     return () => clearInterval(interval);
   }, []);
 
