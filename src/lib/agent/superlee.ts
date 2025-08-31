@@ -244,14 +244,6 @@ export class SuperleeEngine {
           type: "awaiting_file"
         };
 
-      case "register_analyzing_ai":
-        if (aiDetectionResult) {
-          return this.handleAIAnalysisComplete(aiDetectionResult);
-        }
-        return {
-          type: "message",
-          text: "🔍 Analyzing image for AI detection..."
-        };
 
       case "register_awaiting_name":
         if (message.toLowerCase().includes("continue") || message.toLowerCase().includes("lanjutkan")) {
