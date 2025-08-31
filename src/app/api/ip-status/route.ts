@@ -96,19 +96,22 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-You are an IP compliance assistant. Decide if an image is safe to register as IP AND whether it is AI-generated.
+You are an IP compliance assistant. Decide if an image is safe to register as IP, whether it qualifies as fair use, and whether it is AI-generated.
 Return ONLY a raw JSON object (no backticks, no markdown, no explanations) with keys EXACTLY:
 {
   "status": "...",
   "risk": "...",
   "tolerance": "...",
   "ai_generated": true | false,
-  "ai_confidence": 0.0
+  "ai_confidence": 0.0,
+  "fair_use": true | false,
+  "fair_use_reason": "..."
 }
 Rules:
 - Be conservative by default. If unsure, set risk to "Medium" and tolerance to a cautionary message.
 - Only use tolerance starting with "Good to register" when you are confident and risk is "Low".
 - Evaluate: logos/brands, copyrighted characters, watermarks, visible text, faces/identity, tracing/derivatives, NSFW/illegal.
+- Consider fair use categories: commentary, criticism, news reporting, teaching, scholarship, research, parody, or incidental/background inclusion. Mark fair_use=true only when clearly applicable and describe briefly in fair_use_reason.
 - For ai_generated, output a boolean. For ai_confidence, output a number from 0 to 1 (two decimals max).
 - Keep each text field ≤ 280 chars. No extra fields, no prose, no code fences.
 `
@@ -116,16 +119,19 @@ Rules:
         {
           role: "user",
           content: [
-            { type: "text", text: "Analyze this image for IP safety and whether it's AI-generated. Return only the JSON object defined (no backticks/markdown)." },
-            { type: "image_url", image_url: { url: dataUrl } }
+            { type: "text", text: "Analyze this image for IP safety, fair use eligibility, and whether it's AI-generated. Return only the JSON object defined (no backticks/markdown)." },
+            { type: "image_url", image_url: { url: dataUrl, detail: "low" } }
           ] as any
         }
       ],
-      temperature: 0.1
-    });
+      temperature: 0.1,
+      top_p: 0,
+      max_tokens: 200,
+      response_format: { type: "json_object" }
+    }, { timeout: 8000 });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
-    let parsed: { status?: string; risk?: string; tolerance?: string; ai_generated?: boolean; ai_confidence?: number } = {};
+    let parsed: { status?: string; risk?: string; tolerance?: string; ai_generated?: boolean; ai_confidence?: number; fair_use?: boolean; fair_use_reason?: string } = {};
     const extracted = extractJsonObject(raw);
     if (extracted && typeof extracted === 'object') {
       parsed = extracted as any;
@@ -135,7 +141,9 @@ Rules:
         risk: "Not valid JSON, verify manually",
         tolerance: "Proceed with caution, verify manually",
         ai_generated: false,
-        ai_confidence: 0
+        ai_confidence: 0,
+        fair_use: false,
+        fair_use_reason: ""
       };
     }
 
@@ -149,17 +157,24 @@ Rules:
     if (!isFinite(aiConfidence as number)) aiConfidence = 0;
     aiConfidence = Math.max(0, Math.min(1, Number(aiConfidence.toFixed(2))));
 
+    // Normalize Fair Use
+    const fairUse = Boolean(parsed.fair_use);
+    const fairUseReason = clip(parsed.fair_use_reason ?? "");
+
     const strict = (process.env.IP_STATUS_STRICT ?? 'true') === 'true';
     if (strict) {
       const r = (risk || '').toLowerCase();
       const t = (tolerance || '').toLowerCase();
       const uncertain = r.includes('unknown') || r.includes('unable') || r.includes('unsure') || r.includes('cannot') || r.trim() === '';
 
-      if (uncertain) {
+      if (fairUse) {
+        risk = 'Low';
+        tolerance = 'Good to register (fair use)';
+      } else if (uncertain) {
         risk = 'Medium';
         tolerance = 'Proceed with caution, verify manually';
       }
-      if (t.startsWith('good to register') && !r.includes('low')) {
+      if (t.startsWith('good to register') && !r.includes('low') && !fairUse) {
         tolerance = 'Proceed with caution';
       }
       if (!tolerance) tolerance = 'Proceed with caution';
@@ -171,13 +186,15 @@ Rules:
     }
 
     const aiLine = `AI: ${aiGenerated ? 'AI-generated' : 'Original'} (${Math.round(aiConfidence * 100)}%)`;
+    const fairUseLine = `Fair Use: ${fairUse ? 'Yes' : 'No'}${fairUse && fairUseReason ? ` — ${fairUseReason}` : ''}`;
     const formatted =
 `Status: ${status}
 Risk: ${risk}
 Tolerance: ${tolerance}
-${aiLine}`;
+${aiLine}
+${fairUseLine}`;
 
-    return Response.json({ result: formatted, aiGenerated, aiConfidence });
+    return Response.json({ result: formatted, aiGenerated, aiConfidence, fairUse, fairUseReason });
   } catch (err: any) {
     console.error(err);
     return Response.json({ error: "Something went wrong." }, { status: 500 });
