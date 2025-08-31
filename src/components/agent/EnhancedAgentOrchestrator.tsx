@@ -3,7 +3,6 @@ import { usePublicClient } from "wagmi";
 import { storyAeneid } from "@/lib/chains/story";
 import { waitForTxConfirmation } from "@/lib/utils/transaction";
 import { useChatAgent } from "@/hooks/useChatAgent";
-import { useSwapAgent } from "@/hooks/useSwapAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
