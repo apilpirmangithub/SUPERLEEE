@@ -559,7 +559,7 @@ Thank you.`
       setToast('Identity check error ❌');
       chatAgent.addMessage('agent', 'Identity verification encountered an error. Please try again.');
     }
-  }, [referenceFile, aiDetectionResult, chatAgent]);
+  }, [referenceFile, chatAgent]);
 
   return (
     <div className="mx-auto max-w-[1400px] px-2 sm:px-4 md:px-6 overflow-x-hidden">
