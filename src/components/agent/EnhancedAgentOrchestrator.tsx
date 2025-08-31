@@ -549,7 +549,7 @@ Thank you.`
         setAwaitingIdentity(false);
         setToast('Identity verified ✅');
         chatAgent.addMessage('agent', `Identity verified (distance ${best} ≤ ${th}). Proceeding to registration.`);
-        chatAgent.processPrompt('Continue Registration', referenceFile, aiDetectionResult);
+        chatAgent.processPrompt('Continue Registration', referenceFile);
       } else {
         setToast('Identity mismatch ❌');
         chatAgent.addMessage('agent', `Identity check failed (distance ${best} > ${th}). Please retake photo or upload proof.`);
