@@ -93,9 +93,9 @@ export function useChatAgent() {
     setAwaitingInput(null);
 
     // Simulate typing and then process
-    simulateTyping(() => {
+    simulateTyping(async () => {
       // Process with Superlee engine
-      const response = superleeEngine.processMessage(trimmedPrompt, file);
+      const response = await superleeEngine.processMessage(trimmedPrompt, file);
 
       if (response.type === "message") {
         // Only add message if text is not empty (to handle silent responses)
