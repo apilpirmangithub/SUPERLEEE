@@ -16,6 +16,7 @@ import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
 import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
@@ -43,6 +44,7 @@ export function EnhancedAgentOrchestrator() {
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [ragLoaded, setRagLoaded] = useState<string | null>(null);
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
@@ -71,6 +73,19 @@ export function EnhancedAgentOrchestrator() {
   }, [chatAgent, fileUpload]);
 
   const explorerBase = storyAeneid.blockExplorers?.default.url || "https://aeneid.storyscan.xyz";
+
+  // Load RAG index (from localStorage or env)
+  useEffect(() => {
+    const url = (typeof window !== 'undefined' && localStorage.getItem('ragIndexUrl')) || process.env.NEXT_PUBLIC_RAG_INDEX_URL;
+    if (!url) return;
+    (async () => {
+      try {
+        const index = await loadIndexFromIpfs(url);
+        (chatAgent as any).engine?.setRagIndex?.(index);
+        setRagLoaded(url as string);
+      } catch {}
+    })();
+  }, [chatAgent]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
