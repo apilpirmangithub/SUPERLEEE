@@ -505,7 +505,7 @@ Thank you.`
           setAwaitingIdentity(false);
           setToast('Identity verified ✅');
           chatAgent.addMessage('agent', `Identity verified (similarity ${sim.toFixed(3)} ≥ ${simTh}). Proceeding to registration.`);
-          chatAgent.processPrompt('Continue Registration', referenceFile, aiDetectionResult);
+          chatAgent.processPrompt('Continue Registration', referenceFile);
           return;
         }
         setToast('Identity mismatch ❌');
