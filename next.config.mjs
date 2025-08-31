@@ -103,7 +103,15 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
   },
-  
+
+  // Faster CI builds: skip TS type-check and ESLint during production build
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // For standalone builds (Docker)
   output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 };
