@@ -171,6 +171,10 @@ export default function TestAI() {
             </div>
           </div>
         </div>
+
+        <div className="mt-6">
+          <RagIndexer url={"https://cdn.builder.io/o/assets%2F63395bcf097f453d9ecb84f69d3bcf7c%2F4ec2f7198cab4a059fa2c88cf069e9c5?alt=media&token=7d6a924a-4660-4990-94bb-5a0f242c8c3f&apiKey=63395bcf097f453d9ecb84f69d3bcf7c"} />
+        </div>
       </div>
     </div>
   );
