@@ -41,6 +41,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+  const [query, setQuery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFullScan, setIsFullScan] = useState(false);
 
