@@ -19,8 +19,6 @@ export type SuperleeContext = {
   flow: "register" | "swap" | null;
   registerData?: {
     file?: File;
-    aiDetected?: boolean;
-    aiConfidence?: number;
     name?: string;
     description?: string;
     license?: string;
