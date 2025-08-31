@@ -412,8 +412,7 @@ License Type: ${result.licenseType}`;
     registerAgent,
     analyzedFile,
     publicClient,
-    explorerBase,
-    aiDetectionResult
+    explorerBase
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
