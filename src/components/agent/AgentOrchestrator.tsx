@@ -129,7 +129,6 @@ NFT Metadata: ${result.nftMetadataUrl}
                   plan={chatAgent.currentPlan}
                   onConfirm={executePlan}
                   onCancel={chatAgent.clearPlan}
-                  swapState={swapAgent.swapState}
                   registerState={registerAgent.registerState}
                 />
               )}
