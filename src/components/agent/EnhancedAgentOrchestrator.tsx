@@ -239,7 +239,7 @@ export function EnhancedAgentOrchestrator() {
 
       // If duplicate, hide safe IP text and show remix tolerance guidance
       const duplicateBlockText = `\n\nDuplicate detected: this image is already registered as IP${dupTokenId ? ` (Token ID: ${dupTokenId})` : ''}. Registration is blocked.\nTolerance: Allowed to register as a remix`;
-      const textToShow = dupFound ? `${aiText}${duplicateBlockText}` : combinedText;
+      const textToShow = dupFound ? `${ipText}${duplicateBlockText}` : ipText;
 
       // Update the loading message to show results with appropriate next step and image preview
       chatAgent.updateLastMessage({
