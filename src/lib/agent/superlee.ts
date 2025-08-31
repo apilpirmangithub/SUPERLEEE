@@ -7,6 +7,8 @@ import {
   imageToBase64,
   isOpenAIAvailable
 } from "../openai";
+import type { RagIndex } from "@/lib/rag";
+import { embedTexts, topK } from "@/lib/rag";
 
 /** ===== Types ===== */
 export type ConversationState =
