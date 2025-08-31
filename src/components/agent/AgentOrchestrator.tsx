@@ -3,7 +3,6 @@ import { usePublicClient } from "wagmi";
 import { storyAeneid } from "@/lib/chains/story";
 import { waitForTxConfirmation } from "@/lib/utils/transaction";
 import { useChatAgent } from "@/hooks/useChatAgent";
-import { useSwapAgent } from "@/hooks/useSwapAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
@@ -17,7 +16,6 @@ import type { Hex } from "viem";
 
 export function AgentOrchestrator() {
   const chatAgent = useChatAgent();
-  const swapAgent = useSwapAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
   const publicClient = usePublicClient();
@@ -40,31 +38,7 @@ export function AgentOrchestrator() {
 
     const plan = chatAgent.currentPlan;
 
-    if (plan.type === "swap" && plan.intent.kind === "swap") {
-      chatAgent.updateStatus("🔄 Executing swap...");
-
-      const result = await swapAgent.executeSwap(plan.intent);
-
-      if (result.success) {
-        const successMessage = `Swap success ✅
-From: ${plan.intent.tokenIn}
-To: ${plan.intent.tokenOut}
-Amount: ${plan.intent.amount}
-Tx: ${result.txHash}
-↗ View: ${explorerBase}/tx/${result.txHash}`;
-
-        chatAgent.addMessage("agent", successMessage);
-        setToast("Swap success ✅");
-      } else {
-        chatAgent.addMessage("agent", `Swap error: ${result.error}`);
-        setToast("Swap error ❌");
-      }
-      
-      chatAgent.clearPlan();
-      swapAgent.resetSwap();
-    }
-    
-    else if (plan.type === "register" && plan.intent.kind === "register") {
+    if (plan.type === "register" && plan.intent.kind === "register") {
       if (!fileUpload.file) {
         chatAgent.addMessage("agent", "❌ Please attach an image first!");
         setToast("Attach image first 📎");
@@ -123,7 +97,6 @@ NFT Metadata: ${result.nftMetadataUrl}
     }
   }, [
     chatAgent,
-    swapAgent,
     registerAgent,
     fileUpload,
     publicClient,
@@ -155,7 +128,6 @@ NFT Metadata: ${result.nftMetadataUrl}
                   plan={chatAgent.currentPlan}
                   onConfirm={executePlan}
                   onCancel={chatAgent.clearPlan}
-                  swapState={swapAgent.swapState}
                   registerState={registerAgent.registerState}
                 />
               )}

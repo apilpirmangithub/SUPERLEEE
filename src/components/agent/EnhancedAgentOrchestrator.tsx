@@ -3,7 +3,6 @@ import { usePublicClient } from "wagmi";
 import { storyAeneid } from "@/lib/chains/story";
 import { waitForTxConfirmation } from "@/lib/utils/transaction";
 import { useChatAgent } from "@/hooks/useChatAgent";
-import { useSwapAgent } from "@/hooks/useSwapAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
@@ -16,18 +15,19 @@ import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
 import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
 import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
 import { checkDuplicateQuick, checkDuplicateByImageHash } from "@/lib/utils/registry";
-import { getFaceEmbedding, cosineSimilarity, countFaces } from "@/lib/utils/face";
+import { getFaceEmbedding, cosineSimilarity, countFaces, preloadFaceModels } from "@/lib/utils/face";
 import type { Hex } from "viem";
+import { useRouter } from "next/navigation";
 
 export function EnhancedAgentOrchestrator() {
   const chatAgent = useChatAgent();
-  const swapAgent = useSwapAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
   const publicClient = usePublicClient();
@@ -48,6 +48,7 @@ export function EnhancedAgentOrchestrator() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [ragLoaded, setRagLoaded] = useState<string | null>(null);
+  const [showManualReview, setShowManualReview] = useState(false);
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
@@ -80,14 +81,21 @@ export function EnhancedAgentOrchestrator() {
   // Load RAG index (from localStorage or env)
   useEffect(() => {
     const url = (typeof window !== 'undefined' && localStorage.getItem('ragIndexUrl')) || process.env.NEXT_PUBLIC_RAG_INDEX_URL;
-    if (!url) return;
-    (async () => {
-      try {
-        const index = await loadIndexFromIpfs(url);
-        (chatAgent as any).engine?.setRagIndex?.(index);
-        setRagLoaded(url as string);
-      } catch {}
-    })();
+    if (url) {
+      (async () => {
+        try {
+          const index = await loadIndexFromIpfs(url);
+          (chatAgent as any).engine?.setRagIndex?.(index);
+          setRagLoaded(url as string);
+        } catch {}
+      })();
+    }
+    // Preload face models in idle time
+    const idle = (cb: () => void) => {
+      if (typeof (window as any).requestIdleCallback === 'function') (window as any).requestIdleCallback(cb, { timeout: 2000 });
+      else setTimeout(cb, 500);
+    };
+    idle(() => { preloadFaceModels().catch(() => {}); });
   }, [chatAgent]);
 
   // Auto-scroll to bottom when messages change
@@ -289,31 +297,7 @@ export function EnhancedAgentOrchestrator() {
 
     const plan = chatAgent.currentPlan;
 
-    if (plan.type === "swap" && plan.intent.kind === "swap") {
-      chatAgent.updateStatus("🔄 Executing swap...");
-
-      const result = await swapAgent.executeSwap(plan.intent);
-
-      if (result.success) {
-        const successMessage = `Swap success ✅
-From: ${plan.intent.tokenIn}
-To: ${plan.intent.tokenOut}
-Amount: ${plan.intent.amount}
-Tx: ${result.txHash}
-↗ View: ${explorerBase}/tx/${result.txHash}`;
-
-        chatAgent.addMessage("agent", successMessage);
-        setToast("Swap success ✅");
-      } else {
-        chatAgent.addMessage("agent", `Swap error: ${result.error}`);
-        setToast("Swap error ❌");
-      }
-      
-      chatAgent.clearPlan();
-      swapAgent.resetSwap();
-    }
-    
-    else if (plan.type === "register" && plan.intent.kind === "register") {
+    if (plan.type === "register" && plan.intent.kind === "register") {
       // Get file from engine context or fallback to analyzed file
       const fileToUse = chatAgent.getEngineFile() || analyzedFile;
 
@@ -439,7 +423,6 @@ License Type: ${result.licenseType}`;
     }
   }, [
     chatAgent,
-    swapAgent,
     registerAgent,
     analyzedFile,
     publicClient,
@@ -448,6 +431,7 @@ License Type: ${result.licenseType}`;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const router = useRouter();
   const handleButtonClick = useCallback((buttonText: string) => {
     if (buttonText === "Register IP") {
       // Start register flow by asking for file directly (no chat prompt)
@@ -465,28 +449,9 @@ License Type: ${result.licenseType}`;
       setAwaitingIdentity(true);
       setShowCamera(true);
     } else if (buttonText === "Submit for Review") {
-      const email = "apilpirman@gmail.com";
-      const subject = encodeURIComponent("IP Review Request");
-      const body = encodeURIComponent(
-        `Hello,
-
-I would like to submit my IP asset for manual review with permissions.
-
-Included (recommended):
-- Proof of ownership or authorization letter
-- License/permission documents
-- Source references and links
-- Contact info (name, wallet address)
-
-Thank you.`
-      );
-      const mailto = `mailto:${email}?subject=${subject}&body=${body}`;
-      chatAgent.addCompleteMessage({
-        role: "agent",
-        text: `This asset may be risky. Please submit your documents for manual review via email: ${email}\nAttach authorization letters, license proofs, ownership evidence, references, and your contact info.`,
-        ts: Date.now(),
-        links: [{ text: "Open email to submit documents", url: mailto }]
-      });
+      setShowManualReview(true);
+    } else if (buttonText === "Browse IP") {
+      try { router.push('/dashboard'); } catch {}
     } else if (buttonText === "Copy dHash") {
       if (lastDHash) {
         navigator.clipboard.writeText(lastDHash).then(() => {
@@ -658,7 +623,6 @@ Thank you.`
                     plan={chatAgent.currentPlan}
                     onConfirm={executePlan}
                     onCancel={chatAgent.clearPlan}
-                    swapState={swapAgent.swapState}
                     registerState={registerAgent.registerState}
                     selectedPilType={selectedPilType}
                     selectedRevShare={selectedRevShare}
@@ -734,6 +698,21 @@ Thank you.`
       <Toast
         message={toast}
         onClose={() => setToast(null)}
+      />
+
+      {/* Manual Review Modal */}
+      <ManualReviewModal
+        open={showManualReview}
+        onClose={() => setShowManualReview(false)}
+        onSubmitted={({ cid, url }) => {
+          chatAgent.addCompleteMessage({
+            role: 'agent',
+            ts: Date.now(),
+            text: `Permohonan review terkirim ✅\nCID: ${cid}`,
+            links: [{ text: 'Lihat berkas review di IPFS', url }]
+          });
+          setToast('Review submitted ✅');
+        }}
       />
     </div>
   );

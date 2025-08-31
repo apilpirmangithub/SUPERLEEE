@@ -29,6 +29,14 @@ export function useChatAgent() {
     }
   }, []);
 
+  // Show greeting automatically when there's no prior chat
+  useEffect(() => {
+    if (messages.length === 0) {
+      showGreeting();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Save messages to localStorage when they change
   useEffect(() => {
     try {

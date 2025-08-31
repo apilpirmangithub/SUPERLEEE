@@ -61,7 +61,7 @@ export function MessageList({ messages, onButtonClick, isTyping }: MessageListPr
         <div className="text-center">
           <h3 className="text-lg font-semibold text-white mb-2">SUPERLEE</h3>
           <p className="text-sm text-white/60 max-w-md">
-            Psst... just type "SUP" to wake me up! 😉
+            Unggah gambar untuk mulai registrasi IP, atau ketuk "Register IP".
           </p>
         </div>
       </div>

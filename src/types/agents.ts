@@ -1,4 +1,4 @@
-import type { SwapIntent, RegisterIntent } from "@/lib/agent/engine";
+import type { RegisterIntent } from "@/lib/agent/engine";
 
 // Message types for chat
 export type Message = {
@@ -19,18 +19,11 @@ export type Message = {
 
 // Plan types
 export type Plan = {
-  type: "swap" | "register";
+  type: "register";
   steps: string[];
-  intent: SwapIntent | RegisterIntent;
+  intent: RegisterIntent;
 };
 
-// Swap agent state
-export type SwapState = {
-  quote: any | null;
-  status: 'idle' | 'quoting' | 'approving' | 'swapping' | 'success' | 'error';
-  error: any | null;
-  txHash?: string;
-};
 
 // Register IP agent state
 export type RegisterState = {

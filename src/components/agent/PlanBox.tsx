@@ -1,12 +1,11 @@
 import React from "react";
 import { Check, X } from "lucide-react";
-import type { Plan, SwapState, RegisterState } from "@/types/agents";
+import type { Plan, RegisterState } from "@/types/agents";
 
 interface PlanBoxProps {
   plan: Plan;
   onConfirm: () => void;
   onCancel: () => void;
-  swapState?: SwapState;
   registerState?: RegisterState;
   onLicenseChange?: (data: { pilType: 'open_use' | 'commercial_remix'; revShare?: number; licensePrice?: number }) => void;
   selectedPilType?: 'open_use' | 'commercial_remix';
@@ -14,23 +13,10 @@ interface PlanBoxProps {
   selectedLicensePrice?: number;
 }
 
-export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }: PlanBoxProps) {
-  const isExecuting = 
-    (plan.type === "swap" && swapState?.status !== 'idle' && swapState?.status !== 'error') ||
-    (plan.type === "register" && registerState?.status !== 'idle' && registerState?.status !== 'error');
+export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseChange, selectedPilType, selectedRevShare, selectedLicensePrice }: PlanBoxProps) {
+  const isExecuting = (plan.type === "register" && registerState?.status !== 'idle' && registerState?.status !== 'error');
 
   const getStatusText = () => {
-    if (plan.type === "swap" && swapState) {
-      switch (swapState.status) {
-        case 'quoting': return "Getting quote...";
-        case 'approving': return "Approving token...";
-        case 'swapping': return "Executing swap...";
-        case 'success': return "Swap completed!";
-        case 'error': return "Swap failed";
-        default: return "";
-      }
-    }
-    
     if (plan.type === "register" && registerState) {
       switch (registerState.status) {
         case 'compressing': return "Compressing image...";
@@ -43,7 +29,6 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
         default: return "";
       }
     }
-    
     return "";
   };
 
@@ -51,17 +36,6 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
     if (plan.type === "register" && registerState) {
       return registerState.progress;
     }
-    
-    if (plan.type === "swap" && swapState) {
-      switch (swapState.status) {
-        case 'quoting': return 25;
-        case 'approving': return 50;
-        case 'swapping': return 75;
-        case 'success': return 100;
-        default: return 0;
-      }
-    }
-    
     return 0;
   };
 
@@ -90,11 +64,12 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
             Revenue Share (%)
             <input
               type="number"
-              className="bg-transparent border border-white/20 rounded p-2"
+              className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
               min={0}
               max={100}
               step={1}
               defaultValue={selectedRevShare ?? 0}
+              disabled={(selectedPilType || 'open_use') !== 'commercial_remix'}
               onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', revShare: Number(e.target.value) })}
             />
           </label>
@@ -102,10 +77,11 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
             License Fee (IP)
             <input
               type="number"
-              className="bg-transparent border border-white/20 rounded p-2"
+              className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
               min={0}
               step={0.0001}
               defaultValue={selectedLicensePrice ?? 0}
+              disabled={(selectedPilType || 'open_use') !== 'commercial_remix'}
               onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', licensePrice: Number(e.target.value) })}
             />
           </label>
@@ -150,10 +126,9 @@ export function PlanBox({ plan, onConfirm, onCancel, swapState, registerState }:
       </div>
 
       {/* Error display */}
-      {((swapState?.status === 'error' && swapState.error) || 
-        (registerState?.status === 'error' && registerState.error)) && (
+      {(registerState?.status === 'error' && registerState.error) && (
         <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-          Error: {swapState?.error?.message || registerState?.error?.message || "Unknown error"}
+          Error: {registerState?.error?.message || "Unknown error"}
         </div>
       )}
     </div>

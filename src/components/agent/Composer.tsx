@@ -31,6 +31,7 @@ export function Composer({
   const { isConnected } = useAccount();
   const [prompt, setPrompt] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleAutoGrow = (element: HTMLTextAreaElement) => {
@@ -92,26 +93,6 @@ export function Composer({
   // Note: Removed auto-focus for greeting message since it has button options
   // User should choose from buttons, not type in input field
 
-  // Preserve focus when user has typed something
-  useEffect(() => {
-    const handleDocumentClick = (e: MouseEvent) => {
-      // If user has text typed and clicks outside input, refocus after a short delay
-      if (prompt.trim() && textareaRef.current && isConnected && !isTyping) {
-        const target = e.target as Element;
-        // Don't refocus if clicking on buttons or interactive elements
-        if (!target.closest('button, a, input, select')) {
-          setTimeout(() => {
-            if (textareaRef.current && prompt.trim()) {
-              textareaRef.current.focus();
-            }
-          }, 100);
-        }
-      }
-    };
-
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
-  }, [prompt, isConnected, isTyping]);
 
   const handleSubmit = () => {
     const trimmedPrompt = prompt.trim();
@@ -170,8 +151,19 @@ export function Composer({
         )}
 
         {/* Input Area */}
-        <div className="relative">
-          <div className="flex gap-2 rounded-2xl ring-1 ring-white/15 bg-white/8 backdrop-blur-md px-3 py-2 overflow-visible transition-smooth hover:ring-white/25 focus-within:ring-sky-400/50 focus-within:ring-2 hover-glow flex-row">
+        <div className="relative"
+          onDragOver={(e)=>{e.preventDefault(); setIsDragging(true);}}
+          onDragLeave={()=>setIsDragging(false)}
+          onDrop={(e)=>{
+            e.preventDefault(); setIsDragging(false);
+            const items = e.dataTransfer?.files;
+            if (items && items.length > 0) {
+              const f = Array.from(items).find(f=>f.type.startsWith('image/')) || items[0];
+              if (f && onFileSelect) onFileSelect(f);
+            }
+          }}
+        >
+          <div className={`flex gap-2 rounded-2xl ring-1 ring-white/15 bg-white/8 backdrop-blur-md px-3 py-2 overflow-visible transition-smooth hover:ring-white/25 focus-within:ring-sky-400/50 focus-within:ring-2 hover-glow flex-row ${isDragging ? 'outline outline-2 outline-sky-400/60' : ''}`}>
 
 
             {/* Textarea */}
@@ -179,7 +171,7 @@ export function Composer({
               ref={textareaRef}
               rows={1}
               className="flex-1 resize-none bg-transparent px-2 py-2 text-base placeholder:opacity-50 focus:outline-none scrollbar-invisible"
-              placeholder={file ? "Add a message..." : "CHAT WITH SUPERLEE..."}
+              placeholder={file ? "Add a message..." : (isDragging ? "Lepas untuk mengunggah gambar" : "CHAT WITH SUPERLEE...")}
               value={prompt}
               onChange={(e) => {
                 setPrompt(e.target.value);

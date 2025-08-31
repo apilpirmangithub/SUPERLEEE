@@ -41,6 +41,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+  const [query, setQuery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFullScan, setIsFullScan] = useState(false);
 
@@ -229,6 +230,11 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get('q') || sp.get('search');
+      setQuery(q);
+    }
     if (canQuery) loadData(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canQuery]);
@@ -237,9 +243,13 @@ export default function DashboardPage() {
     if (chainId !== AENEID_ID) {
       try {
         await switchChainAsync({ chainId: AENEID_ID });
+        // reload after switch
+        setTimeout(() => loadData(isFullScan), 300);
       } catch (e: any) {
         setError(e?.message || "Switch network rejected");
       }
+    } else {
+      loadData(isFullScan);
     }
   }
 
@@ -318,7 +328,14 @@ export default function DashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((it) => {
+        {items.filter(it => {
+          if (!query) return true;
+          const name = it.nftMeta?.name || '';
+          const desc = it.nftMeta?.description || '';
+          const ipTitle = it.ipMeta?.title || '';
+          const text = `${name} ${desc} ${ipTitle}`.toLowerCase();
+          return text.includes(String(query).toLowerCase());
+        }).map((it) => {
           const name = it.nftMeta?.name || `Token #${it.tokenId}`;
           const image = ipfsToHttps(it.nftMeta?.image);
           const desc = it.nftMeta?.description;
