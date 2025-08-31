@@ -783,6 +783,10 @@ Just tell me what you'd like to do!`;
   setContext(context: SuperleeContext) {
     this.context = context;
   }
+
+  setRagIndex(index: RagIndex | null) {
+    this.context.ragIndex = index;
+  }
 }
 
 export const superleeEngine = new SuperleeEngine();
