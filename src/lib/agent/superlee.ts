@@ -382,8 +382,7 @@ export class SuperleeEngine {
     const plan = [
       `Name IP : "${this.context.registerData.name}"`,
       `Description: "${this.context.registerData.description}"`,
-      `License: ${license}`,
-      `AI Detected: ${this.context.registerData.aiDetected ? 'Yes' : 'No'}`
+      `License: ${license}`
     ];
     
     return {
