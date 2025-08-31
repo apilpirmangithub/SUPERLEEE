@@ -142,11 +142,6 @@ export function EnhancedAgentOrchestrator() {
         ipText = `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register`;
       }
 
-      const aiText = aiResult.isAI
-        ? `Analysis complete! Your image is AI generated with ${((aiResult.confidence || 0) * 100).toFixed(1)}% confidence.
-
-Note: AI-generated images cannot be licensed for AI training purposes - it doesn't make sense to train AI with AI-generated content again!`
-        : `Analysis complete! Your image appears to be real/human-made with ${((aiResult.confidence || 0) * 100).toFixed(1)}% confidence.`;
 
       // Normalize OpenAI response for non-whitelisted: don't allow "Good to register" unless Risk: Low
       if (!wl.whitelisted) {
