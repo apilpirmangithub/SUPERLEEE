@@ -175,7 +175,7 @@ export function EnhancedAgentOrchestrator() {
         if (spg && publicClient) {
           const compressed = await compressImage(currentFile);
           const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
-          const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
+          const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '3000', 10);
           const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve) => {
             const t = setTimeout(() => resolve(null as any), timeoutMs);
             p.then(v => { clearTimeout(t); resolve(v); }).catch(() => { clearTimeout(t); resolve(null as any); });
@@ -313,7 +313,7 @@ Tx: ${result.txHash}
           if (spg && publicClient) {
             const compressed = await compressImage(fileToUse);
             const imageHash = (await sha256HexOfFile(compressed)).toLowerCase();
-            const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '8000', 10);
+            const timeoutMs = Number.parseInt(process.env.NEXT_PUBLIC_REGISTRY_DUPCHECK_TIMEOUT_MS || '3000', 10);
             const withTimeout = <T,>(p: Promise<T>) => new Promise<T>((resolve, reject) => {
               const t = setTimeout(() => resolve(null as any), timeoutMs);
               p.then(v => { clearTimeout(t); resolve(v); }).catch(e => { clearTimeout(t); reject(e); });
