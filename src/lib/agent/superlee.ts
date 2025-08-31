@@ -200,6 +200,7 @@ export class SuperleeEngine {
 
   async processMessage(message: string, file?: File): Promise<SuperleeResponse> {
     const cleaned = message.trim().toLowerCase();
+    this.context.lastUserMessage = message;
 
     // Try AI-powered parsing first if available
     if (this.context.aiEnabled && this.context.state === "greeting") {
