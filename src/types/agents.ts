@@ -1,4 +1,4 @@
-import type { SwapIntent, RegisterIntent } from "@/lib/agent/engine";
+import type { RegisterIntent } from "@/lib/agent/engine";
 
 // Message types for chat
 export type Message = {
