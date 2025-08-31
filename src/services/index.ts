@@ -41,8 +41,14 @@ export async function uploadToIPFS(data: Buffer | string, filename?: string): Pr
 // OpenAI IP status check
 export async function detectIPStatus(file: File): Promise<{ result: string }> {
   try {
+    // Compress to speed up upload and analysis without losing key details
+    const maxW = 1024;
+    const maxH = 1024;
+    const quality = 0.8;
+    const compressed = await compressImage(file, maxW, maxH, quality);
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressed);
 
     const response = await fetch('/api/ip-status', {
       method: 'POST',
