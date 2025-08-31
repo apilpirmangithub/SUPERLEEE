@@ -97,7 +97,6 @@ NFT Metadata: ${result.nftMetadataUrl}
     }
   }, [
     chatAgent,
-    swapAgent,
     registerAgent,
     fileUpload,
     publicClient,
