@@ -122,7 +122,7 @@ export class SuperleeEngine {
     if (cleaned.includes("who is mushy") || cleaned.includes("mushy")) {
       return {
         type: "message",
-        text: "Mushy? Oh, that's the best CM in the world, no doubt. 😎",
+        text: "Mushy? Oh, that's the best CM in the world, no doubt. ��",
         image: {
           url: "https://cdn.builder.io/api/v1/image/assets%2F63395bcf097f453d9ecb84f69d3bcf7c%2F13e4207002674f1985b1c9ba838a17ba?format=webp&width=800",
           alt: "Mushy - The best CM in the world"
@@ -137,6 +137,19 @@ export class SuperleeEngine {
         text: "Fokus kami kini khusus registrasi IP. Fitur swap token dinonaktifkan.",
         buttons: ["Register IP", "Help"]
       };
+    }
+
+    // Allow one-click continuation after analysis
+    if (cleaned.includes("continue registration")) {
+      if (file) {
+        this.context.flow = "register";
+        this.context.registerData = { file };
+        this.context.state = "register_awaiting_name";
+        return { type: "awaiting_input", prompt: "Perfect! What should we call this IP? (Enter a title/name)" };
+      }
+      this.context.flow = "register";
+      this.context.state = "register_awaiting_file";
+      return { type: "message", text: "Lampirkan gambar terlebih dulu.", buttons: ["Upload File"] };
     }
 
     switch (this.context.state) {
@@ -176,23 +189,12 @@ export class SuperleeEngine {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
       this.context.registerData = {};
-
-      const responseText = await this.generateSmartResponse(
-        "User wants to register IP",
-        "User chose IP registration - be encouraging and ask for file upload"
-      ) || "Baik, unggah file IP Anda.";
-
-      return { type: "message", text: responseText, buttons: ["Upload File"] };
+      return { type: "message", text: "Baik, unggah file IP Anda.", buttons: ["Upload File"] };
     }
-
-    const helpResponse = await this.generateSmartResponse(
-      `User typed "${message}" when they should choose Register IP`,
-      "Guide user to start the IP flow"
-    );
 
     return {
       type: "message",
-      text: helpResponse || "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
+      text: "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
       buttons: ["Register IP", "Browse IP", "Help"]
     };
   }
