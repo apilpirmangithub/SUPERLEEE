@@ -450,6 +450,8 @@ License Type: ${result.licenseType}`;
       setShowCamera(true);
     } else if (buttonText === "Submit for Review") {
       setShowManualReview(true);
+    } else if (buttonText === "Browse IP") {
+      try { router.push('/dashboard'); } catch {}
     } else if (buttonText === "Copy dHash") {
       if (lastDHash) {
         navigator.clipboard.writeText(lastDHash).then(() => {
