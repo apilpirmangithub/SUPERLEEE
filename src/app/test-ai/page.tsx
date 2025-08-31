@@ -152,21 +152,21 @@ export default function TestAI() {
           <h3 className="text-lg font-semibold text-white mb-3">Example Commands to Test</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-medium text-white mb-2">Swap Commands</h4>
-              <ul className="space-y-1 text-sm text-white/70">
-                <li>• "swap 1 WIP to USDC"</li>
-                <li>• "I want to trade some ETH for USDT"</li>
-                <li>• "convert 100 USDC to WIP"</li>
-                <li>• "trade my tokens"</li>
-              </ul>
-            </div>
-            <div>
               <h4 className="font-medium text-white mb-2">Register Commands</h4>
               <ul className="space-y-1 text-sm text-white/70">
                 <li>• "register this image as IP"</li>
                 <li>• "mint my artwork as NFT"</li>
                 <li>• "create IP for my photo"</li>
                 <li>• "I want to register my art"</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-white mb-2">Helpful context</h4>
+              <ul className="space-y-1 text-sm text-white/70">
+                <li>• "help"</li>
+                <li>• "what license should I choose"</li>
+                <li>• "explain commercial remix"</li>
+                <li>• "analyze my image"</li>
               </ul>
             </div>
           </div>
