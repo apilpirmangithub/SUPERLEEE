@@ -153,7 +153,8 @@ function parseSwapTokens(text: string): { tokenIn?: string; tokenOut?: string; a
 export class SuperleeEngine {
   private context: SuperleeContext = {
     state: "awaiting_sup",
-    flow: null
+    flow: null,
+    aiEnabled: false
   };
 
   constructor() {
@@ -163,7 +164,8 @@ export class SuperleeEngine {
   reset() {
     this.context = {
       state: "awaiting_sup",
-      flow: null
+      flow: null,
+      aiEnabled: isOpenAIAvailable()
     };
   }
 
@@ -175,8 +177,14 @@ export class SuperleeEngine {
     };
   }
 
-  processMessage(message: string, file?: File): SuperleeResponse {
+  async processMessage(message: string, file?: File): Promise<SuperleeResponse> {
     const cleaned = message.trim().toLowerCase();
+
+    // Try AI-powered parsing first if available
+    if (this.context.aiEnabled && this.context.state === "greeting") {
+      const aiResult = await this.tryAICommandParsing(message);
+      if (aiResult) return aiResult;
+    }
 
     // Easter eggs only work in "awaiting_sup" state (before SUP is typed)
     if (this.context.state === "awaiting_sup") {
