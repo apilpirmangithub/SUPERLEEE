@@ -465,7 +465,7 @@ Thank you.`
     } else {
       chatAgent.processPrompt(buttonText);
     }
-  }, [chatAgent, analyzedFile, aiDetectionResult, lastDHash]);
+  }, [chatAgent, analyzedFile, lastDHash]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
