@@ -15,6 +15,7 @@ import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
 import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
 import { isWhitelistedImage, computeDHash } from "@/lib/utils/whitelist";
