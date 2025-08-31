@@ -101,7 +101,7 @@ export function EnhancedAgentOrchestrator() {
     // Add immediate loading message when starting analysis
     const loadingMessage = {
       role: "agent" as const,
-      text: "Wait a moment, let me analyze your image for AI and IP safety",
+      text: "Wait a moment, let me analyze your image for IP safety",
       ts: Date.now(),
       isLoading: true
     };
