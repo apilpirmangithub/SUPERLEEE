@@ -126,10 +126,9 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
       </div>
 
       {/* Error display */}
-      {((swapState?.status === 'error' && swapState.error) || 
-        (registerState?.status === 'error' && registerState.error)) && (
+      {(registerState?.status === 'error' && registerState.error) && (
         <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-          Error: {swapState?.error?.message || registerState?.error?.message || "Unknown error"}
+          Error: {registerState?.error?.message || "Unknown error"}
         </div>
       )}
     </div>
