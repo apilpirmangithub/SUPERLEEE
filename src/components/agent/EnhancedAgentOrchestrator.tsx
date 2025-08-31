@@ -430,6 +430,7 @@ License Type: ${result.licenseType}`;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const router = (await import('next/navigation')).useRouter?.() as any;
   const handleButtonClick = useCallback((buttonText: string) => {
     if (buttonText === "Register IP") {
       // Start register flow by asking for file directly (no chat prompt)
