@@ -413,7 +413,6 @@ License Type: ${result.licenseType}`;
     }
   }, [
     chatAgent,
-    swapAgent,
     registerAgent,
     analyzedFile,
     publicClient,
