@@ -6,7 +6,6 @@ export type ConversationState =
   | "awaiting_sup"
   | "greeting"
   | "register_awaiting_file"
-  | "register_analyzing_ai"
   | "register_awaiting_name"
   | "register_awaiting_description"
   | "register_awaiting_license"
