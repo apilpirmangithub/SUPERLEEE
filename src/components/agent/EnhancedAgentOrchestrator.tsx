@@ -695,6 +695,21 @@ License Type: ${result.licenseType}`;
         message={toast}
         onClose={() => setToast(null)}
       />
+
+      {/* Manual Review Modal */}
+      <ManualReviewModal
+        open={showManualReview}
+        onClose={() => setShowManualReview(false)}
+        onSubmitted={({ cid, url }) => {
+          chatAgent.addCompleteMessage({
+            role: 'agent',
+            ts: Date.now(),
+            text: `Permohonan review terkirim ✅\nCID: ${cid}`,
+            links: [{ text: 'Lihat berkas review di IPFS', url }]
+          });
+          setToast('Review submitted ✅');
+        }}
+      />
     </div>
   );
 }
