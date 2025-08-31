@@ -84,6 +84,15 @@ async function ensureRecognizer(): Promise<any> {
   return recogSession;
 }
 
+export async function preloadFaceModels(): Promise<boolean> {
+  try {
+    const s = await ensureRecognizer();
+    return !!s;
+  } catch {
+    return false;
+  }
+}
+
 function toCHWFloat(imageData: ImageData, size: number, order: 'RGB' | 'BGR'): Float32Array {
   const { data, width, height } = imageData;
   // Resize to size x size using canvas
