@@ -1,8 +1,11 @@
 // Client-side face embedding using InsightFace (ArcFace) via ONNX Runtime Web loaded from CDN
 // Runs fully in the browser; no npm deps. Returns 512-dim normalized embeddings.
+import { sha256HexOfFile } from "@/lib/utils/crypto";
 
 let ortLoaded: Promise<any> | null = null;
 let recogSession: any | null = null;
+const embeddingCache = new Map<string, Float32Array>();
+const faceCountCache = new Map<string, number>();
 
 const ORT_CDN = (process.env.NEXT_PUBLIC_ORT_WEB_CDN || "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js").trim();
 const INSIGHT_RECOG_URL = (process.env.NEXT_PUBLIC_INSIGHTFACE_RECOG_URL || "https://cdn.jsdelivr.net/npm/insightface.js@0.1.0/models/buffalo_l/w600k_r50.onnx").trim();
@@ -137,6 +140,10 @@ export type FaceEmbedding = Float32Array;
 export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null> {
   if (typeof window === 'undefined') return null;
   try {
+    const key = await sha256HexOfFile(file);
+    const cached = embeddingCache.get(key);
+    if (cached) return cached;
+
     const session = await ensureRecognizer();
     if (!session) return null;
 
@@ -177,6 +184,7 @@ export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null
     const norm = Math.sqrt(sum) || 1;
     const emb = new Float32Array(feat.length);
     for (let i = 0; i < feat.length; i++) emb[i] = feat[i] / norm;
+    embeddingCache.set(key, emb);
     return emb;
   } catch {
     return null;
@@ -186,6 +194,10 @@ export async function getFaceEmbedding(file: File): Promise<FaceEmbedding | null
 export async function countFaces(file: File): Promise<number> {
   if (typeof window === 'undefined') return 0;
   try {
+    const key = await sha256HexOfFile(file);
+    const cached = faceCountCache.get(key);
+    if (cached != null) return cached;
+
     // @ts-ignore
     const hasFD = (window as any).FaceDetector != null;
     const bitmap = await bitmapFromFile(file);
@@ -198,7 +210,9 @@ export async function countFaces(file: File): Promise<number> {
       } catch {}
     }
     const box = await detectFaceBox(bitmap);
-    return box ? 1 : 0;
+    const count = box ? 1 : 0;
+    faceCountCache.set(key, count);
+    return count;
   } catch {
     return 0;
   }
