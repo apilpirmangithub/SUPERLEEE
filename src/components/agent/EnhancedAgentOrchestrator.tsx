@@ -632,7 +632,7 @@ Thank you.`
             {/* Composer */}
             <div className="shrink-0">
               <Composer
-                onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined, aiDetectionResult)}
+                onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined)}
                 status={chatAgent.status}
                 file={fileUpload.file}
                 onFileSelect={fileUpload.handleFileSelect}
