@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Upload, X, FileImage, Sparkles } from "lucide-react";
 import { LicenseSelector } from "./LicenseSelector";
-import { AIDetectionDisplay } from "./AIDetectionDisplay";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { detectAI, fileToBuffer } from "@/services";
 import { DEFAULT_LICENSE_SETTINGS, type LicenseSettings } from "@/lib/license/terms";
 
 interface RegisterIPPanelProps {
@@ -18,45 +16,13 @@ export function RegisterIPPanel({ onRegister, className = "" }: RegisterIPPanelP
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedLicense, setSelectedLicense] = useState<LicenseSettings>(DEFAULT_LICENSE_SETTINGS);
-  const [aiDetectionResult, setAiDetectionResult] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showLicenseSelector, setShowLicenseSelector] = useState(false);
 
-  // Auto-analyze when file is uploaded
-  useEffect(() => {
-    if (fileUpload.file && !isAnalyzing) {
-      analyzeImage();
-    }
-  }, [fileUpload.file]);
 
-  const analyzeImage = async () => {
-    if (!fileUpload.file) return;
-
-    setIsAnalyzing(true);
-    setAiDetectionResult(null);
-
-    try {
-      const buffer = await fileToBuffer(fileUpload.file);
-      const result = await detectAI(buffer);
-      setAiDetectionResult({
-        ...result,
-        status: 'completed'
-      });
-    } catch (error) {
-      console.error('AI detection failed:', error);
-      setAiDetectionResult({
-        isAI: false,
-        confidence: 0,
-        status: 'failed'
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
 
   const handleRegister = () => {
     if (fileUpload.file && onRegister) {
-      onRegister(fileUpload.file, title, description, selectedLicense, aiDetectionResult);
+      onRegister(fileUpload.file, title, description, selectedLicense);
     }
   };
 
@@ -123,26 +89,12 @@ export function RegisterIPPanel({ onRegister, className = "" }: RegisterIPPanelP
                 <p className="text-xs text-white/60">
                   {(fileUpload.file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
-                <button
-                  onClick={analyzeImage}
-                  className="mt-2 text-xs px-2 py-1 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors"
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? 'Menganalisis...' : 'Analisis Ulang'}
-                </button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* AI Detection Results */}
-      {(fileUpload.file && (isAnalyzing || aiDetectionResult)) && (
-        <AIDetectionDisplay
-          result={aiDetectionResult}
-          isAnalyzing={isAnalyzing}
-        />
-      )}
 
       {/* IP Metadata */}
       {fileUpload.file && (
@@ -231,13 +183,12 @@ export function RegisterIPPanel({ onRegister, className = "" }: RegisterIPPanelP
       )}
 
       {/* Summary */}
-      {fileUpload.file && aiDetectionResult && canRegister && (
+      {fileUpload.file && canRegister && (
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
           <h4 className="font-medium text-white mb-2">Ringkasan Pendaftaran:</h4>
           <div className="text-sm space-y-1 text-white/70">
             <p>• <strong>File:</strong> {fileUpload.file.name}</p>
             <p>• <strong>Judul:</strong> {title}</p>
-            <p>• <strong>Deteksi AI:</strong> {aiDetectionResult.isAI ? 'Terdeteksi AI' : 'Original'} ({((aiDetectionResult.confidence || 0) * 100).toFixed(1)}%)</p>
             <p>• <strong>Lisensi:</strong> {selectedLicense.pilType}</p>
             <p>• <strong>Komersial:</strong> {selectedLicense.commercialUse ? 'Ya' : 'Tidak'}</p>
           </div>

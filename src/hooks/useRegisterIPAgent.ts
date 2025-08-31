@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/utils/image";
 import { uploadFile, uploadJSON, extractCid, toHttps, toIpfsUri } from "@/lib/utils/ipfs";
 import { sha256HexOfFile, keccakOfJson } from "@/lib/utils/crypto";
 import { createLicenseTerms, DEFAULT_LICENSE_SETTINGS, STORY_CONTRACTS } from "@/lib/license/terms";
-import { detectAI, fileToBuffer } from "@/services";
+import { } from "@/services";
 import type { RegisterIntent } from "@/lib/agent/engine";
 import type { RegisterState } from "@/types/agents";
 import type { LicenseSettings } from "@/lib/license/terms";
@@ -51,14 +51,6 @@ export function useRegisterIPAgent() {
       // 1. Compress image
       const compressedFile = await compressImage(file);
 
-      // 1.5. AI Detection (optional)
-      let aiDetection = null;
-      try {
-        const buffer = await fileToBuffer(compressedFile);
-        aiDetection = await detectAI(buffer);
-      } catch (error) {
-        console.warn('AI detection failed:', error);
-      }
 
       setRegisterState(prev => ({
         ...prev,
@@ -79,7 +71,7 @@ export function useRegisterIPAgent() {
         progress: 50
       }));
 
-      // 3. Create IP metadata with AI detection info
+      // 3. Create IP metadata
       const ipMetadata = {
         title: intent.title || compressedFile.name,
         description: intent.prompt || "",
@@ -94,11 +86,6 @@ export function useRegisterIPAgent() {
         aiMetadata: intent.prompt
           ? { prompt: intent.prompt, generator: "user", model: "rule-based" }
           : undefined,
-        ...(aiDetection?.isAI && {
-          tags: ["AI-generated"],
-          aiGenerated: true,
-          aiConfidence: aiDetection.confidence,
-        }),
       };
 
       // 4. Upload IP metadata to IPFS
@@ -122,7 +109,6 @@ export function useRegisterIPAgent() {
         ipMetadataURI,
         attributes: [
           { trait_type: "ip_metadata_uri", value: ipMetadataURI },
-          { trait_type: "Type", value: aiDetection?.isAI ? "AI-generated" : "Original" },
           { trait_type: "License Type", value: usedLicenseSettings.pilType },
           { trait_type: "Commercial Use", value: usedLicenseSettings.commercialUse ? "Yes" : "No" },
           { trait_type: "AI Learning Allowed", value: usedLicenseSettings.aiLearning ? "Yes" : "No" },
@@ -176,8 +162,6 @@ export function useRegisterIPAgent() {
         ipMetadataUrl: toHttps(ipMetaCid),
         nftMetadataUrl: toHttps(nftMetaCid),
         licenseType: usedLicenseSettings.pilType,
-        aiDetected: aiDetection?.isAI || false,
-        aiConfidence: aiDetection?.confidence || 0,
       };
 
     } catch (error: any) {

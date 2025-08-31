@@ -389,8 +389,7 @@ Tx: ${result.txHash}
 
 Your image has been successfully registered as IP!
 
-License Type: ${result.licenseType}
-AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) * 100).toFixed(1)}%)`;
+License Type: ${result.licenseType}`;
 
             // Create message with image and links
             const message = {
@@ -429,7 +428,6 @@ AI Detected: ${result.aiDetected ? 'Yes' : 'No'} (${((result.aiConfidence || 0) 
       chatAgent.clearPlan();
       registerAgent.resetRegister();
       setAnalyzedFile(null);
-      setAiDetectionResult(null);
     }
   }, [
     chatAgent,
