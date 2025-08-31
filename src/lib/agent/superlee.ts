@@ -223,7 +223,7 @@ export class SuperleeEngine {
       if (cleaned.includes("who is mushy") || cleaned.includes("mushy")) {
         return {
           type: "message",
-          text: "Mushy? Oh, that's the best CM in the world, no doubt. ����",
+          text: "Mushy? Oh, that's the best CM in the world, no doubt. 😎",
           image: {
             url: "https://cdn.builder.io/api/v1/image/assets%2F63395bcf097f453d9ecb84f69d3bcf7c%2F13e4207002674f1985b1c9ba838a17ba?format=webp&width=800",
             alt: "Mushy - The best CM in the world"
@@ -348,14 +348,20 @@ export class SuperleeEngine {
     };
   }
 
-  private handleGreeting(message: string): SuperleeResponse {
+  private async handleGreeting(message: string): Promise<SuperleeResponse> {
     if (message.includes("register") || message.includes("ip")) {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
       this.context.registerData = {};
+
+      const responseText = await this.generateSmartResponse(
+        "User wants to register IP",
+        "User chose IP registration - be encouraging and ask for file upload"
+      ) || "Alright, please upload your IP file.";
+
       return {
         type: "message",
-        text: "Alright, please upload your IP file.",
+        text: responseText,
         buttons: ["Upload File"]
       };
     }
@@ -364,16 +370,27 @@ export class SuperleeEngine {
       this.context.flow = "swap";
       this.context.state = "swap_awaiting_tokens";
       this.context.swapData = {};
+
+      const prompt = await this.generateSmartResponse(
+        "User wants to swap tokens",
+        "User chose token swap - ask for token details in a friendly way"
+      ) || "Which tokens do you want to swap? (e.g., 'WIP to USDC' or 'ETH > USDT')";
+
       return {
         type: "awaiting_input",
-        prompt: "Which tokens do you want to swap? (e.g., 'WIP to USDC' or 'ETH > USDT')"
+        prompt
       };
     }
 
-    // If user types something invalid, give warning instead of repeating greeting
+    // If user types something invalid, give AI-powered helpful response
+    const helpResponse = await this.generateSmartResponse(
+      `User typed "${message}" when they should choose Register IP or Swap Token`,
+      "User didn't choose from available options - guide them helpfully"
+    );
+
     return {
       type: "message",
-      text: "⚠️ Don't type randomly. Please choose one of the options above!",
+      text: helpResponse || "⚠️ Don't type randomly. Please choose one of the options above!",
       buttons: ["Register IP", "Swap Token"]
     };
   }
@@ -568,7 +585,7 @@ export class SuperleeEngine {
     };
 
     const plan = [
-      `Swap ${this.context.swapData.amount} ${this.context.swapData.tokenIn} → ${this.context.swapData.tokenOut}`,
+      `Swap ${this.context.swapData.amount} ${this.context.swapData.tokenIn} �� ${this.context.swapData.tokenOut}`,
       `Slippage: ${intent.slippagePct}%`,
       "Get quote from PiperX Aggregator",
       "Approve token if needed",
