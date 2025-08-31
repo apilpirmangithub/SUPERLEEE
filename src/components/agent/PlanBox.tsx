@@ -64,11 +64,12 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
             Revenue Share (%)
             <input
               type="number"
-              className="bg-transparent border border-white/20 rounded p-2"
+              className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
               min={0}
               max={100}
               step={1}
               defaultValue={selectedRevShare ?? 0}
+              disabled={(selectedPilType || 'open_use') !== 'commercial_remix'}
               onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', revShare: Number(e.target.value) })}
             />
           </label>
@@ -76,10 +77,11 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
             License Fee (IP)
             <input
               type="number"
-              className="bg-transparent border border-white/20 rounded p-2"
+              className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
               min={0}
               step={0.0001}
               defaultValue={selectedLicensePrice ?? 0}
+              disabled={(selectedPilType || 'open_use') !== 'commercial_remix'}
               onChange={(e) => onLicenseChange?.({ pilType: selectedPilType || 'open_use', licensePrice: Number(e.target.value) })}
             />
           </label>
