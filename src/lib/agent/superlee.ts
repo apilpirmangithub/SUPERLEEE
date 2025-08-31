@@ -364,13 +364,20 @@ export class SuperleeEngine {
     if (!this.context.registerData) {
       this.context.registerData = {};
     }
-    
+
     this.context.registerData.name = name.trim();
     this.context.state = "register_awaiting_description";
-    
+
+    let prompt = "Give me a description of your IP.";
+
+    // If AI analysis is available, suggest description
+    if (this.context.registerData.aiAnalysis?.description) {
+      prompt += `\n\n💡 AI suggests: "${this.context.registerData.aiAnalysis.description}"`;
+    }
+
     return {
       type: "awaiting_input",
-      prompt: "Give me a description of your IP."
+      prompt
     };
   }
 
