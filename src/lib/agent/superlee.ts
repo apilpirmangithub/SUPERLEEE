@@ -261,10 +261,10 @@ export class SuperleeEngine {
 
     switch (this.context.state) {
       case "awaiting_sup":
-        return this.handleSupTrigger(cleaned);
+        return await this.handleSupTrigger(cleaned);
 
       case "greeting":
-        return this.handleGreeting(cleaned);
+        return await this.handleGreeting(cleaned);
 
       case "register_awaiting_file":
         if (file) {
@@ -585,7 +585,7 @@ export class SuperleeEngine {
     };
 
     const plan = [
-      `Swap ${this.context.swapData.amount} ${this.context.swapData.tokenIn} �� ${this.context.swapData.tokenOut}`,
+      `Swap ${this.context.swapData.amount} ${this.context.swapData.tokenIn} → ${this.context.swapData.tokenOut}`,
       `Slippage: ${intent.slippagePct}%`,
       "Get quote from PiperX Aggregator",
       "Approve token if needed",
