@@ -584,8 +584,11 @@ Thank you.`
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg">
                   <span className="text-lg font-bold text-white">S</span>
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
+                  </div>
+                  <AIStatusIndicator />
                 </div>
               </div>
 
