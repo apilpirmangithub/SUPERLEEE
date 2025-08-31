@@ -8,7 +8,8 @@ import {
   useChainId,
   useSwitchChain,
 } from "wagmi";
-import { erc721Abi, parseAbiItem } from "viem";
+import { erc721Abi, parseAbiItem, createPublicClient, http } from "viem";
+import { storyAeneid } from "@/lib/chains/story";
 
 type Item = {
   tokenId: string;
