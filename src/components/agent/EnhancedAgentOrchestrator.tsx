@@ -30,7 +30,6 @@ export function EnhancedAgentOrchestrator() {
   const publicClient = usePublicClient();
   
   const [toast, setToast] = useState<string | null>(null);
-  const [aiDetectionResult, setAiDetectionResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedFile, setAnalyzedFile] = useState<File | null>(null);
   const [lastDHash, setLastDHash] = useState<string | null>(null);
