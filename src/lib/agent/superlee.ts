@@ -378,17 +378,29 @@ export class SuperleeEngine {
     if (!this.context.registerData) {
       this.context.registerData = {};
     }
-    
+
     this.context.registerData.description = description.trim();
     this.context.state = "register_awaiting_license";
-    
+
     const licenseOptions = getLicenseOptions();
 
     let message = "Which license type would you like to choose?\n\n";
     licenseOptions.forEach((option, index) => {
       message += `${index + 1}. ${option}\n`;
     });
-    
+
+    // Add AI analysis info if available
+    if (this.context.registerData.aiAnalysis) {
+      const analysis = this.context.registerData.aiAnalysis;
+      message += `\n📸 AI detected: ${analysis.detectedObjects?.join(', ') || 'various objects'}`;
+      if (analysis.style) {
+        message += `\n🎨 Style: ${analysis.style}`;
+      }
+      if (analysis.mood) {
+        message += `\n😊 Mood: ${analysis.mood}`;
+      }
+    }
+
     return {
       type: "message",
       text: message,
