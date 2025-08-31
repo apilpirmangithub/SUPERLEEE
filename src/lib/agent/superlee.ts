@@ -62,15 +62,17 @@ function getLicenseOptions(): string[] {
   ];
 }
 
-function licenseToCode(license: string): { license: string; pilType: string } {
-  switch (license) {
-    case "Open Use":
-      return { license: "cc0", pilType: "open_use" };
-    case "Commercial Remix":
-      return { license: "by", pilType: "commercial_remix" };
-    default:
-      return { license: "cc0", pilType: "open_use" };
+function licenseToCode(license: string): { license: string; pilType: string } | null {
+  const s = license.trim().toLowerCase();
+  if (s === "open use" || s === "open" || s === "gratis" || s === "free" || s === "1") {
+    return { license: "cc0", pilType: "open_use" };
   }
+  if (s === "commercial remix" || s === "commercial" || s === "komersial" || s === "remix" || s === "2") {
+    return { license: "by", pilType: "commercial_remix" };
+  }
+  if (license === "Open Use") return { license: "cc0", pilType: "open_use" };
+  if (license === "Commercial Remix") return { license: "by", pilType: "commercial_remix" };
+  return null;
 }
 
 /** ===== Main Superlee Engine (IP-only) ===== */
