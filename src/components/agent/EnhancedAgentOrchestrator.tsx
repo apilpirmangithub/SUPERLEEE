@@ -177,9 +177,17 @@ export function EnhancedAgentOrchestrator() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageBase64: base64 }),
-        }).then(res => res.json());
-      } catch {
-        aiAnalysisPromise = Promise.resolve(null);
+        }).then(async res => {
+          const data = await res.json();
+          if (!res.ok) {
+            console.error('AI Analysis API Error:', data);
+            throw new Error(data.error || 'API request failed');
+          }
+          return data;
+        });
+      } catch (err) {
+        console.error('AI Analysis Request Error:', err);
+        aiAnalysisPromise = Promise.resolve({ success: false, error: err instanceof Error ? err.message : 'Request failed' });
       }
 
       const [aiAnalysisResult, wlSettled] = await Promise.allSettled([aiAnalysisPromise, wlPromise]);
@@ -194,6 +202,13 @@ export function EnhancedAgentOrchestrator() {
       if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value?.success) {
         aiResult = aiAnalysisResult.value.analysis;
         aiRecommendation = aiAnalysisResult.value.recommendation;
+      } else {
+        // Log AI analysis failure for debugging
+        console.warn('AI Analysis failed:', {
+          status: aiAnalysisResult.status,
+          value: aiAnalysisResult.status === 'fulfilled' ? aiAnalysisResult.value : undefined,
+          reason: aiAnalysisResult.status === 'rejected' ? aiAnalysisResult.reason : undefined
+        });
       }
 
       // Create comprehensive analysis text
@@ -237,10 +252,27 @@ Tolerance: ${tolerance}`;
         }
 
       } else {
-        // Fallback to basic analysis
+        // Fallback to basic analysis with more detailed error info
+        let errorInfo = "";
+        if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value) {
+          const errorData = aiAnalysisResult.value;
+          if (errorData.details) {
+            errorInfo = `\nError: ${errorData.details}`;
+          }
+          if (errorData.apiKeyConfigured === false) {
+            errorInfo += `\nIssue: OpenAI API key not configured`;
+          }
+        } else if (aiAnalysisResult.status === 'rejected') {
+          errorInfo = `\nError: ${aiAnalysisResult.reason}`;
+        }
+
         ipText = wl.whitelisted ?
-          `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register` :
-          `Status: Basic assessment\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ Advanced AI analysis unavailable - using basic assessment.`;
+          `✅ **Whitelisted Content**\n\nStatus: Pre-approved for registration\nRisk: Low\nTolerance: Good to register\n\n⚠️ Note: Advanced AI analysis unavailable${errorInfo}` :
+          `📋 **Basic Assessment**\n\nStatus: Standard evaluation\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ **Advanced AI analysis unavailable**${errorInfo}\n\n💡 Contact admin to configure OpenAI API for enhanced features:
+• AI content detection
+• Quality & IP eligibility scoring
+• Smart license recommendations
+• AI learning controls`;
       }
 
       // Whitelist override: If whitelisted, always treat as safe

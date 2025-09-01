@@ -79,10 +79,21 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error("Advanced AI analysis error:", error);
+
+    // More detailed error information
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorDetails = {
+      message: errorMessage,
+      name: error instanceof Error ? error.name : "UnknownError",
+      stack: error instanceof Error ? error.stack : undefined
+    };
+
     return NextResponse.json({
       success: false,
       error: "Failed to perform advanced AI analysis",
-      details: error instanceof Error ? error.message : "Unknown error"
+      details: errorMessage,
+      debugInfo: errorDetails,
+      apiKeyConfigured: !!process.env.OPENAI_API_KEY
     }, { status: 500 });
   }
 }

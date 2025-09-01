@@ -14,7 +14,7 @@ export class AdvancedAIDetectionWithLearningControl {
   async analyzeImage(imageUrl: string): Promise<AdvancedAnalysisResult> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
