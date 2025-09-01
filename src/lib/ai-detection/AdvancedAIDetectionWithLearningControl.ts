@@ -272,7 +272,7 @@ Be thorough and specific in your analysis.`
       commercialRevShare = 0;
       aiTrainingRestricted = true;
       
-    } else if (isAI && aiConfidence > 0.4) {
+    } else if (isAI && aiConfidence >= 0.65) {
       primary = 'remix';
       reasoning = 'Possible AI-generated content. Best suited for remix with AI training restrictions.';
       mintingFee = 5;
