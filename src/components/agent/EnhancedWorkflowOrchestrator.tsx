@@ -453,7 +453,7 @@ You can now modify the license terms or metadata before registration.`;
                 <div className="flex items-center gap-3">
                   <div>
                     <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
-                    <div className="text-xs text-gray-400">Smart Analysis + Chat Interface</div>
+                    <div className="text-xs text-gray-400">Smart Analysis + Commands (/help for commands)</div>
                   </div>
                   <AIStatusIndicator />
                 </div>
