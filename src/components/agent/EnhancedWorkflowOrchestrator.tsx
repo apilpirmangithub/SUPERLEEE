@@ -21,7 +21,7 @@ import type { Hex } from "viem";
 import { useRouter } from "next/navigation";
 
 export function EnhancedWorkflowOrchestrator() {
-  const chatAgent = useChatAgent();
+  const chatAgent = useEnhancedChatAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
   const publicClient = usePublicClient();
