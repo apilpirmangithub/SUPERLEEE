@@ -1,6 +1,6 @@
 "use client";
-import { EnhancedAgentOrchestrator } from "@/components/agent/EnhancedAgentOrchestrator";
+import { EnhancedWorkflowPage } from "@/components/agent/EnhancedWorkflowPage";
 
 export default function Page() {
-  return <EnhancedAgentOrchestrator />;
+  return <EnhancedWorkflowPage />;
 }
