@@ -17,7 +17,6 @@ import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
 import { useI18n } from "@/lib/i18n/I18nProvider";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SimpleLicenseWizard from "@/components/SimpleLicenseWizard";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
@@ -762,7 +761,6 @@ License Type: ${result.licenseType}`;
                     <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
                   </div>
                   <AIStatusIndicator />
-                  <LanguageSwitcher />
                 </div>
               </div>
 
