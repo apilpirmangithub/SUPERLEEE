@@ -11,9 +11,10 @@ interface PlanBoxProps {
   selectedPilType?: 'open_use' | 'commercial_remix';
   selectedRevShare?: number;
   selectedLicensePrice?: number;
+  hideLicenseControls?: boolean;
 }
 
-export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseChange, selectedPilType, selectedRevShare, selectedLicensePrice }: PlanBoxProps) {
+export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseChange, selectedPilType, selectedRevShare, selectedLicensePrice, hideLicenseControls }: PlanBoxProps) {
   const isExecuting = (plan.type === "register" && registerState?.status !== 'idle' && registerState?.status !== 'error');
 
   const getStatusText = () => {
@@ -47,7 +48,7 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
         ))}
       </div>
 
-      {plan.type === 'register' && (
+      {plan.type === 'register' && !hideLicenseControls && (
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <label className="flex flex-col gap-1">
             License Type
