@@ -52,6 +52,8 @@ export function EnhancedAgentOrchestrator() {
   const [showCamera, setShowCamera] = useState(false);
   const [ragLoaded, setRagLoaded] = useState<string | null>(null);
   const [showManualReview, setShowManualReview] = useState(false);
+  const [lastAIResult, setLastAIResult] = useState<AdvancedAnalysisResult | null>(null);
+  const [lastAIRec, setLastAIRec] = useState<SimpleRecommendation | null>(null);
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
