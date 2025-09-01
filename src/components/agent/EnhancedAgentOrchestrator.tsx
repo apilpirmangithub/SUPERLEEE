@@ -793,23 +793,34 @@ License Type: ${result.licenseType}`;
 
 
                 {/* Plan Box */}
-                {chatAgent.currentPlan && (
-                  <PlanBox
-                    plan={chatAgent.currentPlan}
-                    onConfirm={executePlan}
-                    onCancel={chatAgent.clearPlan}
-                    registerState={registerAgent.registerState}
-                    selectedPilType={selectedPilType}
-                    selectedRevShare={selectedRevShare}
-                    selectedLicensePrice={selectedLicensePrice}
-                    hideLicenseControls={smartApplied || !!customTerms}
-                    onLicenseChange={({ pilType, revShare, licensePrice }) => {
-                      if (pilType) setSelectedPilType(pilType);
-                      if (typeof revShare === 'number') setSelectedRevShare(revShare);
-                      if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
-                    }}
-                  />
-                )}
+                {chatAgent.currentPlan && (() => {
+                  const base = chatAgent.currentPlan;
+                  const steps = [...base.steps];
+                  const idx = steps.findIndex(s => /^License:/i.test(s) || /^Lisensi:/i.test(s));
+                  let label = selectedPilType === 'open_use' ? 'Open Use' : 'Commercial Remix';
+                  if (smartApplied && lastAIResult?.licenseRecommendation.primary === 'remix') label = 'Remix License';
+                  if (smartApplied && lastAIResult?.licenseRecommendation.primary === 'nonCommercial') label = 'Non-Commercial';
+                  const line = /^Lisensi:/i.test(steps[idx] || '') ? `Lisensi: ${label}` : `License: ${label}`;
+                  if (idx >= 0) steps[idx] = line; else steps.push(line);
+                  const planToShow = { ...base, steps } as typeof base;
+                  return (
+                    <PlanBox
+                      plan={planToShow}
+                      onConfirm={executePlan}
+                      onCancel={chatAgent.clearPlan}
+                      registerState={registerAgent.registerState}
+                      selectedPilType={selectedPilType}
+                      selectedRevShare={selectedRevShare}
+                      selectedLicensePrice={selectedLicensePrice}
+                      hideLicenseControls={smartApplied || !!customTerms}
+                      onLicenseChange={({ pilType, revShare, licensePrice }) => {
+                        if (pilType) setSelectedPilType(pilType);
+                        if (typeof revShare === 'number') setSelectedRevShare(revShare);
+                        if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
+                      }}
+                    />
+                  );
+                })()}
               </div>
             </div>
 
