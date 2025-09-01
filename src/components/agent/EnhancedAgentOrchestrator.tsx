@@ -419,7 +419,7 @@ export function EnhancedAgentOrchestrator() {
       const fileToUse = chatAgent.getEngineFile() || analyzedFile;
 
       if (!fileToUse) {
-        chatAgent.addMessage("agent", "❌ Please attach an image first!");
+        chatAgent.addMessage("agent", "�� Please attach an image first!");
         setToast("Attach image first 📎");
         return;
       }
@@ -558,13 +558,13 @@ License Type: ${result.licenseType}`;
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
     } else if (buttonText === "🧠 Smart License") {
-      // Apply AI-recommended license settings
-      if (analysis && recommendation) {
-        const aiLicense = analysis.licenseRecommendation.primary;
+      // Apply AI-recommended license settings from last analysis
+      if (lastAIResult && lastAIRec) {
+        const aiLicense = lastAIResult.licenseRecommendation.primary;
         if (aiLicense === 'commercial') {
           setSelectedPilType('commercial_remix');
-          setSelectedRevShare(analysis.licenseRecommendation.suggestedTerms.commercialRevShare);
-          setSelectedLicensePrice(analysis.licenseRecommendation.suggestedTerms.mintingFee);
+          setSelectedRevShare(lastAIResult.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(lastAIResult.licenseRecommendation.suggestedTerms.mintingFee);
         } else if (aiLicense === 'remix') {
           setSelectedPilType('commercial_remix');
           setSelectedRevShare(3);
@@ -575,7 +575,7 @@ License Type: ${result.licenseType}`;
           setSelectedLicensePrice(0);
         }
 
-        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${recommendation.message}\n\n**License:** ${recommendation.license}\n**AI Learning:** ${recommendation.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
+        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
         setToast("AI recommendation applied ✅");
       } else {
         setToast("No AI recommendation available ❌");
