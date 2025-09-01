@@ -52,21 +52,13 @@ export function EnhancedWorkflowOrchestrator() {
     }
   }, [publicClient, workflowEngine, chatAgent.engine]);
 
-  // Auto-detect workflow mode based on file upload
+  // Auto-analyze when file is uploaded (integrated with chat)
   useEffect(() => {
-    if (fileUpload.file && !workflowMode.active) {
-      // Check if user wants smart analysis or traditional chat
-      const shouldUseSmartAnalysis = localStorage.getItem('preferSmartAnalysis') !== 'false';
-      
-      if (shouldUseSmartAnalysis) {
-        setWorkflowMode({ type: 'smart-analysis', active: true });
-      } else {
-        setWorkflowMode({ type: 'chat', active: true });
-        // Fall back to traditional chat workflow
-        analyzeImageForChat();
-      }
+    if (!fileUpload.file) return;
+    if (!isAnalyzing) {
+      analyzeImageWithSmartPipeline();
     }
-  }, [fileUpload.file, workflowMode.active]);
+  }, [fileUpload.file]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
