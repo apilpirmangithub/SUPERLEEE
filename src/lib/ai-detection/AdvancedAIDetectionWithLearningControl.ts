@@ -404,7 +404,7 @@ Be thorough and specific in your analysis.`
     const isAI = analysis.aiDetection.isAIGenerated;
     const aiConfidence = analysis.aiDetection.confidence;
     
-    if (isAI && aiConfidence > 0.7) {
+    if (isAI && aiConfidence >= 0.85) {
       return {
         status: 'ai-restricted',
         message: '🤖 AI-Generated content detected. AI training automatically disabled.',
