@@ -595,6 +595,8 @@ License Type: ${result.licenseType}`;
           derivatives: st.derivativesAllowed ? t("yes") : t("no"),
         });
         const msg = `${t("smart.applied.title")}\n\n${body}`;
+        // remove buttons from previous message to avoid duplicate actions showing
+        try { chatAgent.updateLastMessage({ buttons: [] }); } catch {}
         chatAgent.addMessage("agent", msg, nextButtons);
         setToast(t("toasts.aiApplied"));
         setSmartApplied(true);
