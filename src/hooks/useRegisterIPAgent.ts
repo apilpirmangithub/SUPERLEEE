@@ -18,6 +18,7 @@ export function useRegisterIPAgent() {
   const { getClient } = useStoryClient();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const publicClient = usePublicClient();
 
   const [registerState, setRegisterState] = useState<RegisterState>({
     status: 'idle',
