@@ -133,7 +133,6 @@ export function useRegisterIPAgent() {
       }));
 
       // Check for duplicates by image hash
-      const publicClient = await import('@/lib/wagmi').then(m => m.publicClient);
       if (publicClient) {
         const { checkDuplicateQuick } = await import('@/lib/utils/registry');
         const duplicateCheck = await checkDuplicateQuick(publicClient, SPG_COLLECTION, imageHash.slice(2));
