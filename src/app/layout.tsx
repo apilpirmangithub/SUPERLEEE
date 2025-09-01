@@ -8,8 +8,8 @@ const Providers = dynamic(() => import("./providers"), { ssr: false });
 const Topbar = dynamic(() => import("@/components/Topbar"), { ssr: false });
 
 export const metadata: Metadata = {
-  title: "Superlee AI Agent",
-  description: "Advanced IP registration assistant on Story",
+  title: "Superlee AI Agent - Advanced IP Registration",
+  description: "Advanced IP registration assistant with AI detection and smart license recommendations on Story Protocol",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f7fafc" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0f1a" },
@@ -18,48 +18,30 @@ export const metadata: Metadata = {
 };
 
 // Inline script untuk set class "dark" SEBELUM hydrate (anti kedip)
-function ThemeScript() {
-  return (
-    <script
-      dangerouslySetInnerHTML={{
-        __html: `(()=>{try{var t=localStorage.getItem("theme");
-var d=t?t==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;
-document.documentElement.classList.toggle("dark",d)}catch(e){}})();`,
-      }}
-    />
-  );
-}
+const themeScript = `(function(){
+  try {
+    var theme = localStorage.getItem('theme');
+    if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  } catch {}
+})()`;
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-dvh">
-        <ThemeScript />
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="bg-gradient-to-br from-ai-bg via-ai-bg to-slate-900 text-white selection:bg-ai-primary/30">
         <Providers>
-          <div className="relative min-h-dvh">
-            {/* === FULL-SCREEN BACKGROUND === */}
-            <div
-              className="hero-layer pixelated animate-kenburns opacity-30"
-              style={{
-                backgroundImage: `
-                  image-set(
-                    url("/brand/superlee-bg-1280.webp") type("image/webp") 1x,
-                    url("/brand/superlee-bg-1600.webp") type("image/webp") 1.25x,
-                    url("/brand/superlee-bg-1920.webp") type("image/webp") 1.5x
-                  )
-                `,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            />
-            <div className="hero-vignette" />
-            <div className="ai-grid absolute inset-0 pointer-events-none" />
-
-            {/* === CONTENT === */}
-            <main className="relative z-10 max-w-6xl mx-auto p-6 space-y-8">
-              <Topbar />
-              {children}
-            </main>
+          <div className="min-h-screen flex flex-col">
+            <Topbar />
+            <main className="flex-1">{children}</main>
           </div>
         </Providers>
       </body>

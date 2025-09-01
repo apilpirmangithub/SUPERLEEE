@@ -5,8 +5,10 @@ import { waitForTxConfirmation } from "@/lib/utils/transaction";
 import { useChatAgent } from "@/hooks/useChatAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useAdvancedAIDetection } from "@/hooks/useAdvancedAIDetection";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
 import type { LicenseSettings } from "@/lib/license/terms";
+import type { AdvancedAnalysisResult, SimpleRecommendation } from "@/types/ai-detection";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PlanBox } from "./PlanBox";
@@ -14,7 +16,7 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
-import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import SimpleLicenseWizard from "@/components/SimpleLicenseWizard";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
@@ -30,6 +32,7 @@ export function EnhancedAgentOrchestrator() {
   const chatAgent = useChatAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
+  const { analysis, recommendation, analyzeImageFromBase64, reset: resetAIAnalysis } = useAdvancedAIDetection();
   const publicClient = usePublicClient();
   
   const [toast, setToast] = useState<string | null>(null);
@@ -131,7 +134,7 @@ export function EnhancedAgentOrchestrator() {
     // Add immediate loading message when starting analysis
     const loadingMessage = {
       role: "agent" as const,
-      text: "Wait a moment, let me analyze your image for IP safety",
+      text: "🧠 Analyzing your image with advanced AI detection...\n\n• Detecting AI-generated content\n• Assessing quality & originality\n• Calculating IP eligibility\n• Generating license recommendations",
       ts: Date.now(),
       isLoading: true
     };
@@ -151,47 +154,136 @@ export function EnhancedAgentOrchestrator() {
     }, 100);
 
     try {
-      // Run IP status and whitelist in parallel
-      const mode = (process.env.NEXT_PUBLIC_IP_STATUS_MODE || 'client').toLowerCase();
-      const clientIPText = 'Status: Local assessment\nRisk: Medium\nTolerance: Proceed with caution';
-      const ipPromise = mode === 'server' ? detectIPStatus(currentFile) : Promise.resolve({ result: clientIPText });
+      // Convert file to base64 for AI analysis
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            const base64 = (e.target.result as string).split(',')[1];
+            resolve(base64);
+          }
+        };
+        reader.readAsDataURL(currentFile);
+      });
+
+      const base64 = await base64Promise;
+
+      // Run advanced AI analysis and whitelist check in parallel
       const wlPromise = isWhitelistedImage(currentFile);
 
-      const [ipResultSettled, wlSettled] = await Promise.allSettled([ipPromise, wlPromise]);
-
-
-      // Handle IP status result
-      let ipText = "Status: Unknown\nRisk: Unable to determine\nTolerance: Good to register, please verify manually";
-      if (ipResultSettled.status === 'fulfilled') {
-        ipText = ipResultSettled.value.result;
+      let aiAnalysisPromise: Promise<any>;
+      try {
+        aiAnalysisPromise = fetch('/api/ai/analyze-advanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64 }),
+        }).then(async res => {
+          const data = await res.json();
+          if (!res.ok) {
+            console.error('AI Analysis API Error:', data);
+            throw new Error(data.error || 'API request failed');
+          }
+          return data;
+        });
+      } catch (err) {
+        console.error('AI Analysis Request Error:', err);
+        aiAnalysisPromise = Promise.resolve({ success: false, error: err instanceof Error ? err.message : 'Request failed' });
       }
 
-      // Whitelist override: If whitelisted, always treat as safe regardless of OpenAI assessment
+      const [aiAnalysisResult, wlSettled] = await Promise.allSettled([aiAnalysisPromise, wlPromise]);
+
+      // Handle whitelist result
       const wl = wlSettled.status === 'fulfilled' ? wlSettled.value : { whitelisted: false, reason: '', hash: '' };
-      if (wl.whitelisted) {
-        ipText = `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register`;
+
+      // Get AI analysis results
+      let aiResult: AdvancedAnalysisResult | null = null;
+      let aiRecommendation: SimpleRecommendation | null = null;
+
+      if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value?.success) {
+        aiResult = aiAnalysisResult.value.analysis;
+        aiRecommendation = aiAnalysisResult.value.recommendation;
+      } else {
+        // Log AI analysis failure for debugging
+        console.warn('AI Analysis failed:', {
+          status: aiAnalysisResult.status,
+          value: aiAnalysisResult.status === 'fulfilled' ? aiAnalysisResult.value : undefined,
+          reason: aiAnalysisResult.status === 'rejected' ? aiAnalysisResult.reason : undefined
+        });
       }
 
+      // Create comprehensive analysis text
+      let ipText = "";
 
-      // Normalize OpenAI response for non-whitelisted: don't allow "Good to register" unless Risk: Low
-      if (!wl.whitelisted) {
-        const lines = ipText.split('\n');
-        const riskIdx = lines.findIndex(l => l.toLowerCase().startsWith('risk:'));
-        const tolIdx = lines.findIndex(l => l.toLowerCase().startsWith('tolerance:'));
-        const riskLineLower = (riskIdx >= 0 ? lines[riskIdx] : '').toLowerCase();
-        const tolLower = (tolIdx >= 0 ? lines[tolIdx] : '').toLowerCase();
-        const riskLow = riskLineLower.includes('low');
-        const toleranceGood = tolLower.includes('good to register');
-        if (toleranceGood && !riskLow && tolIdx >= 0) {
-          lines[tolIdx] = 'Tolerance: Proceed with caution';
-          ipText = lines.join('\n');
+      if (aiResult && aiRecommendation) {
+        // Advanced AI analysis successful
+        const aiStatus = aiResult.aiDetection.isAIGenerated ?
+          `🤖 AI-Generated (${Math.round(aiResult.aiDetection.confidence * 100)}% confidence)` :
+          `✨ Human-Created (${Math.round((1 - aiResult.aiDetection.confidence) * 100)}% confidence)`;
+
+        const qualityScore = `${aiResult.qualityAssessment.overall}/10`;
+        const ipScore = `${aiResult.ipEligibility.score}/100`;
+        const riskLevel = aiResult.ipEligibility.score >= 80 ? 'Low' :
+                         aiResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
+        const tolerance = aiResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
+
+        ipText = `🧠 **Advanced AI Analysis Complete**
+
+**AI Detection:** ${aiStatus}
+**Quality Score:** ${qualityScore} (Technical: ${Math.round(Object.values(aiResult.qualityAssessment.technical).reduce((a:number,b:number) => a+b, 0)/5)}/10, Artistic: ${Math.round(Object.values(aiResult.qualityAssessment.artistic).reduce((a:number,b:number) => a+b, 0)/4)}/10)
+**IP Eligibility:** ${ipScore} - ${aiResult.ipEligibility.isEligible ? '✅ Eligible' : '❌ Not Eligible'}
+
+**Smart Recommendation:** ${aiRecommendation.message}
+**Suggested License:** ${aiRecommendation.license}
+**AI Learning:** ${aiRecommendation.aiLearning}
+
+**Content:** ${aiResult.content.type} - ${aiResult.content.category}
+**Market Value:** ${aiResult.content.marketValue.toUpperCase()}
+
+Risk: ${riskLevel}
+Tolerance: ${tolerance}`;
+
+        // Add AI-specific warnings
+        if (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7) {
+          ipText += `\n\n⚠️ **AI Protection Active:** AI training automatically disabled for your protection.`;
         }
-        // Optional hard clamp for non-whitelisted (default true via env)
-        const alwaysCaution = (process.env.NEXT_PUBLIC_NON_WL_ALWAYS_CAUTION ?? 'true') === 'true';
-        if (alwaysCaution && tolIdx >= 0) {
-          lines[tolIdx] = 'Tolerance: Proceed with caution';
-          ipText = lines.join('\n');
+
+        if (aiResult.ipEligibility.risks.length > 0) {
+          ipText += `\n\n🛡️ **Important Considerations:**\n${aiResult.ipEligibility.risks.slice(0, 2).map(risk => `• ${risk}`).join('\n')}`;
         }
+
+      } else {
+        // Fallback to basic analysis with more detailed error info
+        let errorInfo = "";
+        if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value) {
+          const errorData = aiAnalysisResult.value;
+          if (errorData.details) {
+            errorInfo = `\nError: ${errorData.details}`;
+          }
+          if (errorData.apiKeyConfigured === false) {
+            errorInfo += `\nIssue: OpenAI API key not configured`;
+          }
+        } else if (aiAnalysisResult.status === 'rejected') {
+          errorInfo = `\nError: ${aiAnalysisResult.reason}`;
+        }
+
+        ipText = wl.whitelisted ?
+          `✅ **Whitelisted Content**\n\nStatus: Pre-approved for registration\nRisk: Low\nTolerance: Good to register\n\n⚠️ Note: Advanced AI analysis unavailable${errorInfo}` :
+          `📋 **Basic Assessment**\n\nStatus: Standard evaluation\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ **Advanced AI analysis unavailable**${errorInfo}\n\n💡 Troubleshooting:
+• Check if OpenAI API key is configured
+• Verify network connectivity
+• Visit /ai-debug for detailed diagnostics
+• Contact admin for API configuration
+
+🔧 Enhanced features when AI is working:
+• AI content detection
+• Quality & IP eligibility scoring
+• Smart license recommendations
+• AI learning controls`;
+      }
+
+      // Whitelist override: If whitelisted, always treat as safe
+      if (wl.whitelisted) {
+        ipText = `✅ **Whitelisted Content Detected**\n\nStatus: Pre-approved for registration\nRisk: Low\nTolerance: Good to register\n\n${aiResult ? '🧠 AI analysis also available above.' : ''}`;
       }
 
       setLastDHash(wl.hash || null);
@@ -221,13 +313,32 @@ export function EnhancedAgentOrchestrator() {
         setDupCheck({ checked: true, found: dupFound, tokenId: dupTokenId });
       }
 
-      // Decide next action based on IP status tolerance/risk (whitelist forces safe)
-      const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
-      const toleranceLineRaw = ipText.split('\n').find(l => l.toLowerCase().startsWith('tolerance:')) || '';
-      const toleranceValue = toleranceLineRaw.split(':').slice(1).join(':').trim().toLowerCase();
-      const riskLow = riskLine.includes('low');
-      const toleranceGood = toleranceValue.startsWith('good to register');
-      const isRisky = wl.whitelisted ? false : !(riskLow && toleranceGood);
+      // Decide next action based on AI analysis and whitelist
+      let isRisky = false;
+      let riskLow = true;
+      let toleranceGood = true;
+
+      if (aiResult) {
+        // Use AI analysis to determine risk
+        riskLow = aiResult.ipEligibility.score >= 60;
+        toleranceGood = aiResult.ipEligibility.isEligible;
+        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7);
+      } else {
+        // Fallback to text parsing
+        const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
+        const toleranceLineRaw = ipText.split('\n').find(l => l.toLowerCase().startsWith('tolerance:')) || '';
+        const toleranceValue = toleranceLineRaw.split(':').slice(1).join(':').trim().toLowerCase();
+        riskLow = riskLine.includes('low');
+        toleranceGood = toleranceValue.startsWith('good to register');
+        isRisky = !(riskLow && toleranceGood);
+      }
+
+      // Whitelist override
+      if (wl.whitelisted) {
+        isRisky = false;
+        riskLow = true;
+        toleranceGood = true;
+      }
 
       // Detect human face to offer camera capture option
       let faceDetected = false;
@@ -254,8 +365,24 @@ export function EnhancedAgentOrchestrator() {
         setAwaitingIdentity(true);
       }
 
-      // Compose buttons
-      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Custom License", "Copy dHash"]);
+      // Compose buttons based on analysis
+      let buttons: string[] = [];
+
+      if (dupFound) {
+        buttons = ["Upload File", "Submit for Review", "Copy dHash"];
+      } else if (isRisky) {
+        buttons = ["Upload File", "Submit for Review", "Copy dHash"];
+      } else {
+        // Safe to register - add AI-enhanced options
+        buttons = ["Continue Registration", "Custom License", "Copy dHash"];
+
+        // Add AI-specific button if AI analysis was successful
+        if (aiResult && aiRecommendation) {
+          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "🎯 Smart License", "Copy dHash"];
+        } else {
+          buttons = ["Continue Registration", "🎯 Smart License", "Copy dHash"];
+        }
+      }
       if (faceDetected || requiresIdentity) {
         const cameraOnly = (process.env.NEXT_PUBLIC_CAMERA_ONLY_ON_FACE ?? 'false') === 'true';
         if (!buttons.includes("Take Photo")) buttons = ["Take Photo", ...buttons];
@@ -440,9 +567,32 @@ License Type: ${result.licenseType}`;
     }
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
+    } else if (buttonText === "🧠 Use AI Recommendation") {
+      // Apply AI-recommended license settings
+      if (analysis && recommendation) {
+        const aiLicense = analysis.licenseRecommendation.primary;
+        if (aiLicense === 'commercial') {
+          setSelectedPilType('commercial_remix');
+          setSelectedRevShare(analysis.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(analysis.licenseRecommendation.suggestedTerms.mintingFee);
+        } else if (aiLicense === 'remix') {
+          setSelectedPilType('commercial_remix');
+          setSelectedRevShare(3);
+          setSelectedLicensePrice(5);
+        } else {
+          setSelectedPilType('open_use');
+          setSelectedRevShare(0);
+          setSelectedLicensePrice(0);
+        }
+
+        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${recommendation.message}\n\n**License:** ${recommendation.license}\n**AI Learning:** ${recommendation.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
+        setToast("AI recommendation applied ✅");
+      } else {
+        setToast("No AI recommendation available ❌");
+      }
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
-    } else if (buttonText === "Custom License") {
+    } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
@@ -463,7 +613,7 @@ License Type: ${result.licenseType}`;
     } else {
       chatAgent.processPrompt(buttonText);
     }
-  }, [chatAgent, analyzedFile, lastDHash]);
+  }, [chatAgent, analyzedFile, lastDHash, analysis, recommendation]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -672,10 +822,15 @@ License Type: ${result.licenseType}`;
         style={{ display: 'none' }}
       />
 
-      {/* Custom License Modal */}
+      {/* Smart License Wizard */}
       {showCustomLicense && (
-        <CustomLicenseTermsSelector
-          onSubmit={(t) => { setCustomTerms(t); setShowCustomLicense(false); chatAgent.addMessage('agent', 'Custom license terms set. Click Continue Registration to proceed.'); }}
+        <SimpleLicenseWizard
+          onLicenseSelect={(data) => {
+            setCustomTerms(data.terms);
+            setShowCustomLicense(false);
+            chatAgent.addMessage('agent', `✨ **Smart License Created!**\n\n**${data.name}**\n${data.description}\n\nClick Continue Registration to proceed with your custom license.`);
+            setToast("Smart license created ✅");
+          }}
           onClose={() => setShowCustomLicense(false)}
         />
       )}
