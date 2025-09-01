@@ -222,8 +222,11 @@ export function EnhancedAgentOrchestrator() {
         const isHighConfidenceAI = aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85;
         const mainTitle = isHighConfidenceAI ? '🤖 AI Content' : '✨ Great Work';
         const subtitle = isHighConfidenceAI ? 'This looks like it was made by AI' : 'Looks human-made';
-        const nextAction = aiRecommendation.status === 'ai-restricted' ? 'Register for Free Sharing' :
-          (aiRecommendation.status === 'excellent' || aiRecommendation.status === 'good') ? 'Sell (Commercial License)' : 'Share for Free';
+        const nextAction = aiResult.licenseRecommendation.primary === 'commercial'
+          ? 'Sell (Commercial License)'
+          : aiResult.licenseRecommendation.primary === 'remix'
+          ? 'Register Remix License'
+          : 'Share for Free';
 
         ipText = `${mainTitle}\n${subtitle}\nNext: ${nextAction}`;
 
@@ -828,7 +831,7 @@ License Type: ${result.licenseType}`;
             setCustomTerms(data.terms);
             setShowCustomLicense(false);
             chatAgent.addMessage('agent', `✨ **Smart License Created!**\n\n**${data.name}**\n${data.description}\n\nClick Continue Registration to proceed with your custom license.`);
-            setToast("Smart license created ���");
+            setToast("Smart license created ✅");
           }}
           onClose={() => setShowCustomLicense(false)}
         />
