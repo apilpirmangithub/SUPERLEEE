@@ -4,7 +4,7 @@ import { compressImage } from "@/lib/utils/image";
 import { sha256HexOfFile } from "@/lib/utils/crypto";
 import { checkDuplicateQuick, checkDuplicateByImageHash } from "@/lib/utils/registry";
 import { getFaceEmbedding, countFaces } from "@/lib/utils/face";
-import { uploadToIPFS } from "@/lib/utils/ipfs";
+import { uploadFile, uploadJSON } from "@/lib/utils/ipfs";
 import { loadIndexFromIpfs } from "@/lib/rag";
 import { PublicClient } from "viem";
 
