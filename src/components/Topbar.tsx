@@ -81,6 +81,11 @@ export default function Topbar() {
                 <strong>{ipCount ? (ipCount as bigint).toString() : "—"}</strong>
                 <span className="opacity-70">IP Registered</span>
               </ChipLink>
+
+              {/* Link to Advanced AI Test */}
+              <ChipLink href="/test-ai-advanced" title="Test Advanced AI Detection">
+                <span className="opacity-70">🧠 AI Test</span>
+              </ChipLink>
             </>
           )}
 
