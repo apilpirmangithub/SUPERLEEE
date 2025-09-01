@@ -28,6 +28,7 @@ export function EnhancedWorkflowOrchestrator() {
   const router = useRouter();
 
   const [toast, setToast] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [workflowEngine] = useState(() => new EnhancedWorkflowEngine(publicClient || undefined));
   const [showCustomLicense, setShowCustomLicense] = useState(false);
   const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
