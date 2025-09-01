@@ -60,6 +60,8 @@ const translations: Record<Lang, Dict> = {
     "planBox.cancel": "Cancel",
     "planBox.error": "Error:",
     "planBox.unknownError": "Unknown error",
+    "license.option.openUse": "Open Use (free)",
+    "license.option.commercialRemix": "Commercial Remix",
 
     // Status
     "status.compressing": "Compressing image...",
@@ -127,6 +129,8 @@ const translations: Record<Lang, Dict> = {
     "planBox.cancel": "Batal",
     "planBox.error": "Error:",
     "planBox.unknownError": "Error tidak diketahui",
+    "license.option.openUse": "Open Use (gratis)",
+    "license.option.commercialRemix": "Komersial Remix",
 
     // Status
     "status.compressing": "Mengompres gambar...",
