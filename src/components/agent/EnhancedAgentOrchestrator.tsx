@@ -751,8 +751,8 @@ License Type: ${result.licenseType}`;
         {/* Main Chat Area */}
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {/* Header */}
-          <div className="shrink-0 mb-3 lg:mb-4">
-            <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 p-3 lg:p-4">
+          <div className="shrink-0 mb-3 lg:mb-4 sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/5 bg-white/10">
+            <div className="flex items-center justify-between rounded-xl border border-white/10 p-3 lg:p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg">
                   <span className="text-lg font-bold text-white">S</span>
