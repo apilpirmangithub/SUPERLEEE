@@ -76,6 +76,8 @@ function licenseToCode(license: string): { license: string; pilType: string } | 
 }
 
 /** ===== Main Superlee Engine (IP-only) ===== */
+import { t as tt } from "@/lib/i18n/i18n";
+
 export class SuperleeEngine {
   private context: SuperleeContext = {
     state: "greeting",
