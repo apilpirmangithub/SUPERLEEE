@@ -81,6 +81,7 @@ export function EnhancedAgentOrchestrator() {
     setLastDHash(null);
     setDupCheck(null);
     setToast(null);
+    setSmartApplied(false);
   }, [chatAgent, fileUpload]);
 
   const explorerBase = storyAeneid.blockExplorers?.default.url || "https://aeneid.storyscan.xyz";
