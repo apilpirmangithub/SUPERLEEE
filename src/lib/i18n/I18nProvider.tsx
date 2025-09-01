@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { translations as coreTranslations, getLang as coreGetLang, setLang as coreSetLang } from "@/lib/i18n/i18n";
 
-type Lang = "en" | "id";
+export type Lang = "en" | "id";
 
 type Dict = Record<string, string>;
 
@@ -70,15 +71,18 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLang] = useState<Lang>("id");
+  const [lang, setLangState] = useState<Lang>(coreGetLang());
+
+  useEffect(() => { coreSetLang(lang); }, [lang]);
 
   const t = useCallback((key: string, vars?: Record<string, string | number | boolean>) => {
-    const dict = translations[lang];
-    const str = dict[key] ?? translations.en[key] ?? key;
+    const dict = coreTranslations[lang] as Record<string, string>;
+    const str = dict[key] ?? (coreTranslations.en as any)[key] ?? key;
     return vars ? interpolate(str, vars) : str;
   }, [lang]);
 
-  const value = useMemo(() => ({ lang, setLang, t }), [lang, t]);
+  const setLang = useCallback((l: Lang) => setLangState(l), []);
+  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
