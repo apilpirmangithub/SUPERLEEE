@@ -67,6 +67,7 @@ export function EnhancedAgentOrchestrator() {
     setLastDHash(null);
     setDupCheck(null);
     setToast(null);
+    setSmartApplied(false);
   }, [chatAgent, fileUpload]);
 
   const handleOpenSession = useCallback((id: string) => {
