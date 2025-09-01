@@ -568,6 +568,18 @@ License Type: ${result.licenseType}`;
       } else {
         setToast("No AI recommendation available ❌");
       }
+    } else if (buttonText === "Why?") {
+      if (lastAIResult && lastAIRec) {
+        const aiStatus = lastAIResult.aiDetection.isAIGenerated ? `AI-Generated (${Math.round(lastAIResult.aiDetection.confidence * 100)}%)` : 'Human-Created';
+        const qualityScore = `${lastAIResult.qualityAssessment.overall}/10`;
+        const ipScore = `${lastAIResult.ipEligibility.score}/100`;
+        const riskLevel = lastAIResult.ipEligibility.score >= 80 ? 'Low' : lastAIResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
+        const tolerance = lastAIResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
+        const details = `🧠 Advanced Details\n• AI: ${aiStatus}\n• Quality: ${qualityScore}\n• IP: ${ipScore} (${lastAIResult.ipEligibility.isEligible ? 'Eligible' : 'Not Eligible'})\n• License: ${lastAIRec.license}\n• Risk: ${riskLevel}\n• Tolerance: ${tolerance}`;
+        chatAgent.addMessage("agent", details);
+      } else {
+        chatAgent.addMessage("agent", "No additional details available.");
+      }
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
     } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
