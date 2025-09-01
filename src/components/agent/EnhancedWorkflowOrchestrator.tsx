@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from "react";
 import { usePublicClient } from "wagmi";
 import { storyAeneid } from "@/lib/chains/story";
 import { waitForTxConfirmation } from "@/lib/utils/transaction";
-import { useChatAgent } from "@/hooks/useChatAgent";
+import { useEnhancedChatAgent } from "@/hooks/useEnhancedChatAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
