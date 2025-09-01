@@ -81,8 +81,8 @@ export class AdvancedAIDetectionWithLearningControl {
 }
 
 **CRITICAL AI LEARNING RULES:**
-1. If isAIGenerated = true AND confidence > 0.7, set aiLearningAllowed = false and aiTrainingRestricted = true
-2. If isAIGenerated = true, automatically set learningRestriction = "disabled"
+1. If isAIGenerated = true AND confidence > 0.85, set aiLearningAllowed = false and aiTrainingRestricted = true
+2. If isAIGenerated = true AND confidence is between 0.65 and 0.85, set learningRestriction = "conditional" and aiTrainingRestricted = true
 3. For AI-generated content, create restrictive robotTerms to block AI crawlers
 4. Human-created content can have aiLearningAllowed = true unless creator specifies otherwise
 
