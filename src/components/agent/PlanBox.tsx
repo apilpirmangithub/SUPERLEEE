@@ -51,8 +51,8 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
               onChange={(e) => onLicenseChange?.({ pilType: (e.target.value as any) })}
               defaultValue={selectedPilType || 'open_use'}
             >
-              <option value="open_use">Open Use (free)</option>
-              <option value="commercial_remix">Commercial Remix</option>
+              <option value="open_use">{t('license.option.openUse')}</option>
+              <option value="commercial_remix">{t('license.option.commercialRemix')}</option>
             </select>
           </label>
           <label className="flex flex-col gap-1">
