@@ -299,7 +299,7 @@ export class ChatCommandProcessor {
 
     try {
       const chatSession: ChatSession = {
-        sessionId: uuidv4(),
+        sessionId: crypto.randomUUID(),
         messages: messages,
         createdAt: messages[0]?.timestamp || new Date().toISOString(),
         updatedAt: new Date().toISOString()
