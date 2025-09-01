@@ -296,9 +296,18 @@ export function EnhancedAgentOrchestrator() {
 
       if (aiResult) {
         // Use AI analysis to determine risk
-        riskLow = aiResult.ipEligibility.score >= 60;
-        toleranceGood = aiResult.ipEligibility.isEligible;
-        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85);
+        const isHighConfidenceAI = aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85;
+        const isHuman = !isHighConfidenceAI;
+        if (isHuman) {
+          // User request: if OpenAI doesn't recognize as AI, allow registration
+          riskLow = true;
+          toleranceGood = true;
+          isRisky = false;
+        } else {
+          riskLow = aiResult.ipEligibility.score >= 60;
+          toleranceGood = aiResult.ipEligibility.isEligible;
+          isRisky = !toleranceGood || isHighConfidenceAI;
+        }
       } else {
         // Fallback to text parsing
         const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
@@ -819,7 +828,7 @@ License Type: ${result.licenseType}`;
             setCustomTerms(data.terms);
             setShowCustomLicense(false);
             chatAgent.addMessage('agent', `✨ **Smart License Created!**\n\n**${data.name}**\n${data.description}\n\nClick Continue Registration to proceed with your custom license.`);
-            setToast("Smart license created ✅");
+            setToast("Smart license created ���");
           }}
           onClose={() => setShowCustomLicense(false)}
         />
