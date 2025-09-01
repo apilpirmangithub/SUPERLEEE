@@ -298,7 +298,7 @@ export function EnhancedAgentOrchestrator() {
         // Use AI analysis to determine risk
         riskLow = aiResult.ipEligibility.score >= 60;
         toleranceGood = aiResult.ipEligibility.isEligible;
-        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7);
+        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85);
       } else {
         // Fallback to text parsing
         const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
