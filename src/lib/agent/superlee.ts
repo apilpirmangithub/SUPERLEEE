@@ -141,8 +141,9 @@ export class SuperleeEngine {
       };
     }
 
-    // Allow one-click continuation after analysis
-    if (cleaned.includes("continue registration")) {
+    // Allow one-click continuation after analysis (EN + ID)
+    const isContinue = cleaned.includes("continue registration") || /\blanjut(kan)?\s+registrasi\b/i.test(message) || /\blanjut\s*regist\b/i.test(message);
+    if (isContinue) {
       if (file) {
         this.context.flow = "register";
         this.context.registerData = { file };
