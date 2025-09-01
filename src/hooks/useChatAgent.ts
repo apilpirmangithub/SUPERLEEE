@@ -132,7 +132,7 @@ export function useChatAgent() {
 
       if (response.type === "awaiting_file") {
         setAwaitingFile(true);
-        addMessage("agent", "Please upload your file to continue.");
+        addMessage("agent", "Unggah berkas untuk melanjutkan.");
         return;
       }
 
