@@ -16,7 +16,7 @@ import { AIStatusIndicator } from "../AIStatusIndicator";
 import { EnhancedWorkflowEngine, WorkflowResult } from "@/lib/agent/workflow-engine";
 import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { Hex } from "viem";
 import { useRouter } from "next/navigation";
 
