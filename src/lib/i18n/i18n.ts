@@ -143,7 +143,7 @@ const translations: Record<Lang, Dict> = {
   }
 };
 
-let currentLang: Lang = (typeof process !== 'undefined' && (process as any).env?.NEXT_PUBLIC_DEFAULT_LANG === 'en') ? 'en' : 'id';
+let currentLang: Lang = 'en';
 
 export function getLang(): Lang { return currentLang; }
 export function setLang(l: Lang) {
@@ -151,13 +151,6 @@ export function setLang(l: Lang) {
   if (typeof window !== 'undefined') try { localStorage.setItem('appLang', l); } catch {}
 }
 
-// Initialize from localStorage if present
-if (typeof window !== 'undefined') {
-  try {
-    const saved = localStorage.getItem('appLang') as Lang | null;
-    if (saved === 'en' || saved === 'id') currentLang = saved;
-  } catch {}
-}
 
 export function t(key: string): string {
   const dict = translations[currentLang] || translations.id;
