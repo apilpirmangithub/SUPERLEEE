@@ -581,6 +581,32 @@ You can now modify the license terms or metadata before registration.`;
         message={toast}
         onClose={() => setToast(null)}
       />
+
+      {/* Enhanced Chat Notifications */}
+      {chatAgent.notification && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className={`p-4 rounded-lg shadow-lg backdrop-blur-sm border max-w-sm ${
+            chatAgent.notification.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+            chatAgent.notification.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+            'bg-blue-500/10 border-blue-500/20 text-blue-400'
+          }`}>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">
+                  {chatAgent.notification.type === 'success' ? '✅' :
+                   chatAgent.notification.type === 'error' ? '❌' : 'ℹ️'} {chatAgent.notification.message}
+                </p>
+              </div>
+              <button
+                onClick={() => chatAgent.showNotification('', 'info')}
+                className="ml-2 text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
