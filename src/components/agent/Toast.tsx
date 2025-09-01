@@ -28,7 +28,9 @@ export function Toast({ message, onClose, duration = 3500 }: ToastProps) {
   if (!message) return null;
 
   return (
-    <div 
+    <div
+      role="status"
+      aria-live="polite"
       className={`fixed bottom-6 right-6 z-50 rounded-xl bg-black/70 border border-white/10 px-4 py-3 text-sm shadow-glow transition-all duration-300 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}
