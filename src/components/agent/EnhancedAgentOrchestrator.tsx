@@ -362,13 +362,13 @@ export function EnhancedAgentOrchestrator() {
         buttons = ["Upload File", "Submit for Review", "Copy dHash"];
       } else {
         // Safe to register - add AI-enhanced options
-        buttons = ["Continue Registration", "Custom License", "Copy dHash"];
+        const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
+        const allowCustom = !!(aiResult && (aiResult.ipEligibility.score >= minForCustom));
+        buttons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : []), "Copy dHash"];
 
         // Add AI-specific button if AI analysis was successful
         if (aiResult && aiRecommendation) {
-          buttons = ["🧠 Smart License", "Continue Registration", "Custom License", "Copy dHash"];
-        } else {
-          buttons = ["Continue Registration", "Custom License", "Copy dHash"];
+          buttons = ["🧠 Smart License", "Continue Registration", ...(allowCustom ? ["Custom License"] : []), "Copy dHash"];
         }
       }
       if (faceDetected || requiresIdentity) {
@@ -419,7 +419,7 @@ export function EnhancedAgentOrchestrator() {
       const fileToUse = chatAgent.getEngineFile() || analyzedFile;
 
       if (!fileToUse) {
-        chatAgent.addMessage("agent", "�� Please attach an image first!");
+        chatAgent.addMessage("agent", "❌ Please attach an image first!");
         setToast("Attach image first 📎");
         return;
       }
