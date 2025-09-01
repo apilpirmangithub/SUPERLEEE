@@ -13,7 +13,6 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
-import { SmartAnalysisAggregator } from "./SmartAnalysisAggregator";
 import { EnhancedWorkflowEngine, WorkflowResult } from "@/lib/agent/workflow-engine";
 import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
