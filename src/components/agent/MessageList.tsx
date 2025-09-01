@@ -69,7 +69,7 @@ export function MessageList({ messages, onButtonClick, isTyping }: MessageListPr
   }
 
   return (
-    <div className="space-y-6 pb-4">
+    <div className="space-y-6 pb-4" role="log" aria-live="polite">
       {messages.map((message, index) => {
         const isUser = message.role === "you";
         const showTimestamp = index === messages.length - 1 ||
@@ -197,7 +197,8 @@ export function MessageList({ messages, onButtonClick, isTyping }: MessageListPr
                         <button
                           key={buttonIndex}
                           onClick={() => onButtonClick?.(button)}
-                          className="px-3 py-2 text-sm rounded-lg bg-sky-500/90 hover:bg-sky-400 text-white border border-sky-400/30 transition-bounce hover:scale-105 hover:shadow-xl hover-lift"
+                          className="px-3 py-2 text-sm rounded-lg bg-sky-500/90 hover:bg-sky-400 text-white border border-sky-400/30 transition-bounce hover:scale-105 hover:shadow-xl hover-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40"
+                          title={button}
                         >
                           {button}
                         </button>
