@@ -545,7 +545,7 @@ License Type: ${result.licenseType}`;
     }
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
-    } else if (buttonText === "🧠 Use AI Recommendation") {
+    } else if (buttonText === "🧠 Smart License") {
       // Apply AI-recommended license settings
       if (analysis && recommendation) {
         const aiLicense = analysis.licenseRecommendation.primary;
