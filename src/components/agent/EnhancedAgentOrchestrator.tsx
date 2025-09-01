@@ -275,13 +275,32 @@ Tolerance: ${tolerance}`;
         setDupCheck({ checked: true, found: dupFound, tokenId: dupTokenId });
       }
 
-      // Decide next action based on IP status tolerance/risk (whitelist forces safe)
-      const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
-      const toleranceLineRaw = ipText.split('\n').find(l => l.toLowerCase().startsWith('tolerance:')) || '';
-      const toleranceValue = toleranceLineRaw.split(':').slice(1).join(':').trim().toLowerCase();
-      const riskLow = riskLine.includes('low');
-      const toleranceGood = toleranceValue.startsWith('good to register');
-      const isRisky = wl.whitelisted ? false : !(riskLow && toleranceGood);
+      // Decide next action based on AI analysis and whitelist
+      let isRisky = false;
+      let riskLow = true;
+      let toleranceGood = true;
+
+      if (aiResult) {
+        // Use AI analysis to determine risk
+        riskLow = aiResult.ipEligibility.score >= 60;
+        toleranceGood = aiResult.ipEligibility.isEligible;
+        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7);
+      } else {
+        // Fallback to text parsing
+        const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
+        const toleranceLineRaw = ipText.split('\n').find(l => l.toLowerCase().startsWith('tolerance:')) || '';
+        const toleranceValue = toleranceLineRaw.split(':').slice(1).join(':').trim().toLowerCase();
+        riskLow = riskLine.includes('low');
+        toleranceGood = toleranceValue.startsWith('good to register');
+        isRisky = !(riskLow && toleranceGood);
+      }
+
+      // Whitelist override
+      if (wl.whitelisted) {
+        isRisky = false;
+        riskLow = true;
+        toleranceGood = true;
+      }
 
       // Detect human face to offer camera capture option
       let faceDetected = false;
@@ -308,8 +327,22 @@ Tolerance: ${tolerance}`;
         setAwaitingIdentity(true);
       }
 
-      // Compose buttons
-      let buttons = dupFound ? ["Upload File", "Submit for Review", "Copy dHash"] : (isRisky ? ["Upload File", "Submit for Review", "Copy dHash"] : ["Continue Registration", "Custom License", "Copy dHash"]);
+      // Compose buttons based on analysis
+      let buttons: string[] = [];
+
+      if (dupFound) {
+        buttons = ["Upload File", "Submit for Review", "Copy dHash"];
+      } else if (isRisky) {
+        buttons = ["Upload File", "Submit for Review", "Copy dHash"];
+      } else {
+        // Safe to register - add AI-enhanced options
+        buttons = ["Continue Registration", "Custom License", "Copy dHash"];
+
+        // Add AI-specific button if AI analysis was successful
+        if (aiResult && aiRecommendation) {
+          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "Custom License", "Copy dHash"];
+        }
+      }
       if (faceDetected || requiresIdentity) {
         const cameraOnly = (process.env.NEXT_PUBLIC_CAMERA_ONLY_ON_FACE ?? 'false') === 'true';
         if (!buttons.includes("Take Photo")) buttons = ["Take Photo", ...buttons];
