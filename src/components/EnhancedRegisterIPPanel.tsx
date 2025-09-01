@@ -79,7 +79,7 @@ export function EnhancedRegisterIPPanel({ onRegister, className = "" }: Enhanced
         derivativeWorks: analysis.licenseRecommendation.suggestedTerms.derivativesAllowed,
         revShare: analysis.licenseRecommendation.suggestedTerms.commercialRevShare,
         mintingFee: analysis.licenseRecommendation.suggestedTerms.mintingFee,
-        currency: 'WIP',
+        currency: 'USD',
         aiLearning: !analysis.licenseRecommendation.suggestedTerms.aiTrainingRestricted,
         territory: 'Global',
         attribution: true,
