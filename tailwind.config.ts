@@ -18,6 +18,9 @@ const config: Config = {
           accent: "#22d3ee",
           magenta: "#e879f9",
         },
+        border: "rgba(255,255,255,0.12)",
+        background: "#0b0f1a",
+        foreground: "#e5e7eb",
       },
       backdropBlur: { xs: "2px" },
       boxShadow: {

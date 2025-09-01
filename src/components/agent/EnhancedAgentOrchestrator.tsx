@@ -16,6 +16,7 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 import SimpleLicenseWizard from "@/components/SimpleLicenseWizard";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
@@ -52,6 +53,10 @@ export function EnhancedAgentOrchestrator() {
   const [showCamera, setShowCamera] = useState(false);
   const [ragLoaded, setRagLoaded] = useState<string | null>(null);
   const [showManualReview, setShowManualReview] = useState(false);
+  const [lastAIResult, setLastAIResult] = useState<AdvancedAnalysisResult | null>(null);
+  const [lastAIRec, setLastAIRec] = useState<SimpleRecommendation | null>(null);
+  const [smartApplied, setSmartApplied] = useState(false);
+  const { t } = useI18n();
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
@@ -64,6 +69,7 @@ export function EnhancedAgentOrchestrator() {
     setLastDHash(null);
     setDupCheck(null);
     setToast(null);
+    setSmartApplied(false);
   }, [chatAgent, fileUpload]);
 
   const handleOpenSession = useCallback((id: string) => {
@@ -77,6 +83,7 @@ export function EnhancedAgentOrchestrator() {
     setLastDHash(null);
     setDupCheck(null);
     setToast(null);
+    setSmartApplied(false);
   }, [chatAgent, fileUpload]);
 
   const explorerBase = storyAeneid.blockExplorers?.default.url || "https://aeneid.storyscan.xyz";
@@ -202,6 +209,8 @@ export function EnhancedAgentOrchestrator() {
       if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value?.success) {
         aiResult = aiAnalysisResult.value.analysis;
         aiRecommendation = aiAnalysisResult.value.recommendation;
+        setLastAIResult(aiResult);
+        setLastAIRec(aiRecommendation);
       } else {
         // Log AI analysis failure for debugging
         console.warn('AI Analysis failed:', {
@@ -211,45 +220,20 @@ export function EnhancedAgentOrchestrator() {
         });
       }
 
-      // Create comprehensive analysis text
+      // Create simplified chat message
       let ipText = "";
 
       if (aiResult && aiRecommendation) {
-        // Advanced AI analysis successful
-        const aiStatus = aiResult.aiDetection.isAIGenerated ?
-          `🤖 AI-Generated (${Math.round(aiResult.aiDetection.confidence * 100)}% confidence)` :
-          `✨ Human-Created (${Math.round((1 - aiResult.aiDetection.confidence) * 100)}% confidence)`;
+        const isHighConfidenceAI = aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85;
+        const mainTitle = isHighConfidenceAI ? '🤖 AI Content' : '✨ Great Work';
+        const subtitle = isHighConfidenceAI ? 'This looks like it was made by AI' : 'Looks human-made';
+        const nextAction = aiResult.licenseRecommendation.primary === 'commercial'
+          ? 'Sell (Commercial License)'
+          : aiResult.licenseRecommendation.primary === 'remix'
+          ? 'Register Remix License'
+          : 'Share for Free';
 
-        const qualityScore = `${aiResult.qualityAssessment.overall}/10`;
-        const ipScore = `${aiResult.ipEligibility.score}/100`;
-        const riskLevel = aiResult.ipEligibility.score >= 80 ? 'Low' :
-                         aiResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
-        const tolerance = aiResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
-
-        ipText = `🧠 **Advanced AI Analysis Complete**
-
-**AI Detection:** ${aiStatus}
-**Quality Score:** ${qualityScore} (Technical: ${Math.round(Object.values(aiResult.qualityAssessment.technical).reduce((a:number,b:number) => a+b, 0)/5)}/10, Artistic: ${Math.round(Object.values(aiResult.qualityAssessment.artistic).reduce((a:number,b:number) => a+b, 0)/4)}/10)
-**IP Eligibility:** ${ipScore} - ${aiResult.ipEligibility.isEligible ? '✅ Eligible' : '❌ Not Eligible'}
-
-**Smart Recommendation:** ${aiRecommendation.message}
-**Suggested License:** ${aiRecommendation.license}
-**AI Learning:** ${aiRecommendation.aiLearning}
-
-**Content:** ${aiResult.content.type} - ${aiResult.content.category}
-**Market Value:** ${aiResult.content.marketValue.toUpperCase()}
-
-Risk: ${riskLevel}
-Tolerance: ${tolerance}`;
-
-        // Add AI-specific warnings
-        if (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7) {
-          ipText += `\n\n⚠️ **AI Protection Active:** AI training automatically disabled for your protection.`;
-        }
-
-        if (aiResult.ipEligibility.risks.length > 0) {
-          ipText += `\n\n🛡️ **Important Considerations:**\n${aiResult.ipEligibility.risks.slice(0, 2).map(risk => `• ${risk}`).join('\n')}`;
-        }
+        ipText = `${mainTitle}\n${subtitle}\nNext: ${nextAction}`;
 
       } else {
         // Fallback to basic analysis with more detailed error info
@@ -320,9 +304,18 @@ Tolerance: ${tolerance}`;
 
       if (aiResult) {
         // Use AI analysis to determine risk
-        riskLow = aiResult.ipEligibility.score >= 60;
-        toleranceGood = aiResult.ipEligibility.isEligible;
-        isRisky = !toleranceGood || (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7);
+        const isHighConfidenceAI = aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85;
+        const isHuman = !isHighConfidenceAI;
+        if (isHuman) {
+          // User request: if OpenAI doesn't recognize as AI, allow registration
+          riskLow = true;
+          toleranceGood = true;
+          isRisky = false;
+        } else {
+          riskLow = aiResult.ipEligibility.score >= 60;
+          toleranceGood = aiResult.ipEligibility.isEligible;
+          isRisky = !toleranceGood || isHighConfidenceAI;
+        }
       } else {
         // Fallback to text parsing
         const riskLine = (ipText.split('\n').find(l => l.toLowerCase().startsWith('risk:')) || '').toLowerCase();
@@ -374,13 +367,13 @@ Tolerance: ${tolerance}`;
         buttons = ["Upload File", "Submit for Review", "Copy dHash"];
       } else {
         // Safe to register - add AI-enhanced options
-        buttons = ["Continue Registration", "Custom License", "Copy dHash"];
+        const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
+        const allowCustom = !!(aiResult && (aiResult.ipEligibility.score >= minForCustom));
+        buttons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : []), "Copy dHash"];
 
         // Add AI-specific button if AI analysis was successful
         if (aiResult && aiRecommendation) {
-          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "🎯 Smart License", "Copy dHash"];
-        } else {
-          buttons = ["Continue Registration", "🎯 Smart License", "Copy dHash"];
+          buttons = ["🧠 Smart License", "Continue Registration", ...(allowCustom ? ["Custom License"] : []), "Copy dHash"];
         }
       }
       if (faceDetected || requiresIdentity) {
@@ -393,6 +386,8 @@ Tolerance: ${tolerance}`;
       if (requiresIdentity) {
         buttons = buttons.filter(b => b !== "Continue Registration");
       }
+
+      if (!buttons.includes("Why?")) buttons.push("Why?");
 
       // If duplicate, hide safe IP text and show remix tolerance guidance
       const duplicateBlockText = `\n\nDuplicate detected: this image is already registered as IP${dupTokenId ? ` (Token ID: ${dupTokenId})` : ''}. Registration is blocked.\nTolerance: Allowed to register as a remix`;
@@ -565,34 +560,64 @@ License Type: ${result.licenseType}`;
       fileInputRef.current?.click();
       return;
     }
-    if (buttonText === "Upload File") {
+    if (buttonText === t("buttons.uploadFile") || buttonText === "Upload File") {
       fileInputRef.current?.click();
-    } else if (buttonText === "🧠 Use AI Recommendation") {
-      // Apply AI-recommended license settings
-      if (analysis && recommendation) {
-        const aiLicense = analysis.licenseRecommendation.primary;
+    } else if (buttonText === "🧠 Smart License") {
+      // Apply AI-recommended license settings from last analysis
+      if (lastAIResult && lastAIRec) {
+        const aiLicense = lastAIResult.licenseRecommendation.primary;
         if (aiLicense === 'commercial') {
           setSelectedPilType('commercial_remix');
-          setSelectedRevShare(analysis.licenseRecommendation.suggestedTerms.commercialRevShare);
-          setSelectedLicensePrice(analysis.licenseRecommendation.suggestedTerms.mintingFee);
+          setSelectedRevShare(lastAIResult.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(lastAIResult.licenseRecommendation.suggestedTerms.mintingFee);
         } else if (aiLicense === 'remix') {
           setSelectedPilType('commercial_remix');
-          setSelectedRevShare(3);
-          setSelectedLicensePrice(5);
+          setSelectedRevShare(lastAIResult.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(lastAIResult.licenseRecommendation.suggestedTerms.mintingFee);
         } else {
           setSelectedPilType('open_use');
           setSelectedRevShare(0);
           setSelectedLicensePrice(0);
         }
 
-        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${recommendation.message}\n\n**License:** ${recommendation.license}\n**AI Learning:** ${recommendation.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
-        setToast("AI recommendation applied ✅");
+        const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
+        const allowCustom = lastAIResult.ipEligibility.score >= minForCustom;
+        const nextButtons = [t("buttons.continue"), ...(allowCustom ? [t("buttons.customLicense")] : [])];
+        const st = lastAIResult.licenseRecommendation.suggestedTerms;
+        const body = t("smart.applied.body", {
+          message: lastAIRec.message,
+          license: lastAIRec.license,
+          aiLearning: lastAIRec.aiLearning,
+          mintingFee: st.mintingFee,
+          revShare: st.commercialRevShare,
+          commercialUse: st.commercialUse ? t("yes") : t("no"),
+          derivatives: st.derivativesAllowed ? t("yes") : t("no"),
+        });
+        const msg = `${t("smart.applied.title")}\n\n${body}`;
+        // remove buttons from previous message to avoid duplicate actions showing
+        try { chatAgent.updateLastMessage({ buttons: [] }); } catch {}
+        chatAgent.addMessage("agent", msg, nextButtons);
+        setToast(t("toasts.aiApplied"));
+        setSmartApplied(true);
       } else {
-        setToast("No AI recommendation available ❌");
+        setToast(t("toasts.noAI"));
       }
-    } else if (buttonText === "Continue Registration") {
+    } else if (buttonText === "Why?") {
+      if (lastAIResult && lastAIRec) {
+        const aiStatus = lastAIResult.aiDetection.isAIGenerated ? `AI-Generated (${Math.round(lastAIResult.aiDetection.confidence * 100)}%)` : 'Human-Created';
+        const qualityScore = `${lastAIResult.qualityAssessment.overall}/10`;
+        const ipScore = `${lastAIResult.ipEligibility.score}/100`;
+        const riskLevel = lastAIResult.ipEligibility.score >= 80 ? 'Low' : lastAIResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
+        const tolerance = lastAIResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
+        const details = `${t("details.title")}\n${t("details.ai")}: ${aiStatus}\n${t("details.quality")}: ${qualityScore}\n${t("details.ip")}: ${ipScore} - ${lastAIResult.ipEligibility.isEligible ? 'eligible' : 'not eligible'}\n${t("details.license")}: ${lastAIRec.license}\n${t("details.risk")}: ${riskLevel}\n${t("details.suggestion")}: ${tolerance}`;
+        chatAgent.addMessage("agent", details);
+      } else {
+        chatAgent.addMessage("agent", t("generic.noMoreDetails"));
+      }
+    } else if (buttonText === t("buttons.continue") || buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
-    } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
+    } else if (buttonText === t("buttons.customLicense") || buttonText === "Custom License" || buttonText === "🎯 Smart License") {
+      setSmartApplied(false);
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
@@ -725,8 +750,8 @@ License Type: ${result.licenseType}`;
         {/* Main Chat Area */}
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {/* Header */}
-          <div className="shrink-0 mb-3 lg:mb-4">
-            <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 p-3 lg:p-4">
+          <div className="shrink-0 mb-3 lg:mb-4 sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/5 bg-white/10">
+            <div className="flex items-center justify-between rounded-xl border border-white/10 p-3 lg:p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg">
                   <span className="text-lg font-bold text-white">S</span>
@@ -768,22 +793,34 @@ License Type: ${result.licenseType}`;
 
 
                 {/* Plan Box */}
-                {chatAgent.currentPlan && (
-                  <PlanBox
-                    plan={chatAgent.currentPlan}
-                    onConfirm={executePlan}
-                    onCancel={chatAgent.clearPlan}
-                    registerState={registerAgent.registerState}
-                    selectedPilType={selectedPilType}
-                    selectedRevShare={selectedRevShare}
-                    selectedLicensePrice={selectedLicensePrice}
-                    onLicenseChange={({ pilType, revShare, licensePrice }) => {
-                      if (pilType) setSelectedPilType(pilType);
-                      if (typeof revShare === 'number') setSelectedRevShare(revShare);
-                      if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
-                    }}
-                  />
-                )}
+                {chatAgent.currentPlan && (() => {
+                  const base = chatAgent.currentPlan;
+                  const steps = [...base.steps];
+                  const idx = steps.findIndex(s => /^License:/i.test(s) || /^Lisensi:/i.test(s));
+                  let label = selectedPilType === 'open_use' ? 'Open Use' : 'Commercial Remix';
+                  if (smartApplied && lastAIResult?.licenseRecommendation.primary === 'remix') label = 'Remix License';
+                  if (smartApplied && lastAIResult?.licenseRecommendation.primary === 'nonCommercial') label = 'Non-Commercial';
+                  const line = /^Lisensi:/i.test(steps[idx] || '') ? `Lisensi: ${label}` : `License: ${label}`;
+                  if (idx >= 0) steps[idx] = line; else steps.push(line);
+                  const planToShow = { ...base, steps } as typeof base;
+                  return (
+                    <PlanBox
+                      plan={planToShow}
+                      onConfirm={executePlan}
+                      onCancel={chatAgent.clearPlan}
+                      registerState={registerAgent.registerState}
+                      selectedPilType={selectedPilType}
+                      selectedRevShare={selectedRevShare}
+                      selectedLicensePrice={selectedLicensePrice}
+                      hideLicenseControls={smartApplied || !!customTerms}
+                      onLicenseChange={({ pilType, revShare, licensePrice }) => {
+                        if (pilType) setSelectedPilType(pilType);
+                        if (typeof revShare === 'number') setSelectedRevShare(revShare);
+                        if (typeof licensePrice === 'number') setSelectedLicensePrice(licensePrice);
+                      }}
+                    />
+                  );
+                })()}
               </div>
             </div>
 

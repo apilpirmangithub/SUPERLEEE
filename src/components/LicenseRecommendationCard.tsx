@@ -112,9 +112,9 @@ export function LicenseRecommendationCard({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="text-center p-3 rounded-lg bg-black/20 border border-white/5">
             <p className="text-lg font-semibold text-white">
-              {analysis.licenseRecommendation.suggestedTerms.mintingFee}
+              ${analysis.licenseRecommendation.suggestedTerms.mintingFee}
             </p>
-            <p className="text-xs text-white/60">WIP Minting Fee</p>
+            <p className="text-xs text-white/60">$ Minting Fee</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-black/20 border border-white/5">
             <p className="text-lg font-semibold text-white">

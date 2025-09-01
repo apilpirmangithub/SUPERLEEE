@@ -4,11 +4,12 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: theme('colors.border');
   }
-  
+
   body {
-    @apply bg-background text-foreground;
+    background-color: theme('colors.background');
+    color: theme('colors.foreground');
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

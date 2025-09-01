@@ -273,7 +273,7 @@ export function AIDetectionDisplay({
             </div>
             <div>
               <span className="text-white/60 block">Minting Fee:</span>
-              <span className="text-white/90">{advancedResult.licenseRecommendation.suggestedTerms.mintingFee} WIP</span>
+              <span className="text-white/90">${advancedResult.licenseRecommendation.suggestedTerms.mintingFee}</span>
             </div>
             <div>
               <span className="text-white/60 block">Revenue Share:</span>

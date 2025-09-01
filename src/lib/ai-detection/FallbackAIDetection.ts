@@ -13,103 +13,112 @@ export class FallbackAIDetection {
   async analyzeImageBasic(imageUrl: string): Promise<{ analysis: AdvancedAnalysisResult; recommendation: SimpleRecommendation }> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
-            content: `Analyze this image and determine:
-1. Is it AI-generated? (yes/no and confidence 0-1)
+            content: [
+              {
+                type: "text",
+                text: `Analyze this image and determine strictly, being conservative:
+1. Is it AI-generated? (boolean) with confidence 0-1
 2. Overall quality score (1-10)
-3. Suitable for IP registration? (yes/no)
-4. Recommended license type (commercial/non-commercial/remix)
-
-Respond in JSON format:
-{
-  "isAIGenerated": boolean,
-  "confidence": number,
-  "qualityScore": number,
-  "ipEligible": boolean,
-  "recommendedLicense": "commercial|nonCommercial|remix",
-  "reasoning": "brief explanation"
-}`
+3. Suitable for IP registration? (boolean)
+4. Recommended license type (commercial/nonCommercial/remix)
+Return JSON only with keys: isAIGenerated, confidence, qualityScore, ipEligible, recommendedLicense, reasoning.`
+              },
+              { type: "image_url", image_url: { url: imageUrl } }
+            ]
           }
         ],
         max_tokens: 300,
-        temperature: 0.3,
+        temperature: 0.2,
         response_format: { type: "json_object" }
       });
 
       const result = JSON.parse(response.choices[0]?.message?.content || '{}');
-      
+
+      // Conservative post-processing
+      const parsedQuality = Number(result.qualityScore || 5);
+      const score = Math.max(1, Math.min(10, parsedQuality));
+      let isAIGenerated = Boolean(result.isAIGenerated);
+      const confidence = Math.max(0, Math.min(1, Number(result.confidence || 0)));
+      // Require high confidence to flag as AI
+      if (confidence < 0.85) isAIGenerated = false;
+
+      const computedScore = score * 10;
+      let ipEligible = typeof result.ipEligible === 'boolean' ? result.ipEligible : computedScore >= 60;
+      if (computedScore >= 60 && !isAIGenerated) ipEligible = true; // keep consistent
+
       // Convert simple result to advanced format
       const analysis: AdvancedAnalysisResult = {
         aiDetection: {
-          isAIGenerated: result.isAIGenerated || false,
-          confidence: result.confidence || 0.5,
-          indicators: result.isAIGenerated ? ["Basic AI pattern detection"] : [],
+          isAIGenerated,
+          confidence,
+          indicators: isAIGenerated ? ["Basic AI pattern detection"] : [],
           aiModel: undefined,
-          learningRestriction: result.isAIGenerated ? 'disabled' : 'enabled'
+          learningRestriction: isAIGenerated ? 'disabled' : 'enabled'
         },
         qualityAssessment: {
-          overall: result.qualityScore || 5,
+          overall: score,
           technical: {
-            resolution: result.qualityScore || 5,
-            sharpness: result.qualityScore || 5,
-            composition: result.qualityScore || 5,
-            lighting: result.qualityScore || 5,
-            colorBalance: result.qualityScore || 5
+            resolution: score,
+            sharpness: score,
+            composition: score,
+            lighting: score,
+            colorBalance: score
           },
           artistic: {
-            creativity: result.qualityScore || 5,
-            originality: result.qualityScore || 5,
-            aesthetics: result.qualityScore || 5,
-            concept: result.qualityScore || 5
+            creativity: score,
+            originality: score,
+            aesthetics: score,
+            concept: score
           }
         },
         ipEligibility: {
-          isEligible: result.ipEligible || false,
-          score: (result.qualityScore || 5) * 10,
-          reasons: result.ipEligible ? ["Basic quality assessment passed"] : ["Basic quality assessment failed"],
-          risks: result.isAIGenerated ? ["AI-generated content has limited IP protection"] : [],
-          requirements: result.ipEligible ? [] : ["Improve image quality or authenticity"]
+          isEligible: ipEligible,
+          score: computedScore,
+          reasons: ipEligible ? ["Basic quality assessment passed"] : ["Basic quality assessment failed"],
+          risks: isAIGenerated ? ["AI-generated content has limited IP protection"] : [],
+          requirements: ipEligible ? [] : ["Improve image quality or authenticity"]
         },
         licenseRecommendation: {
           primary: result.recommendedLicense || 'nonCommercial',
           confidence: 0.7,
           reasoning: result.reasoning || "Basic recommendation based on simple analysis",
-          aiLearningAllowed: !result.isAIGenerated,
+          aiLearningAllowed: !isAIGenerated,
           robotTerms: {
-            userAgent: result.isAIGenerated ? "*" : "*",
-            allow: result.isAIGenerated ? "Disallow: /" : "Allow: /"
+            userAgent: '*',
+            allow: isAIGenerated ? "Disallow: /" : "Allow: /"
           },
           suggestedTerms: {
             mintingFee: result.recommendedLicense === 'commercial' ? 50 : 0,
             commercialRevShare: result.recommendedLicense === 'commercial' ? 10 : 0,
             derivativesAllowed: result.recommendedLicense === 'remix',
             commercialUse: result.recommendedLicense === 'commercial',
-            aiTrainingRestricted: result.isAIGenerated
+            aiTrainingRestricted: isAIGenerated
           }
         },
         content: {
           type: "image",
           category: "digital content",
           description: "Content analyzed with basic AI detection",
-          tags: result.isAIGenerated ? ["AI-Generated", "Basic-Analysis"] : ["Human-Created", "Basic-Analysis"],
-          marketValue: result.qualityScore > 7 ? 'high' : result.qualityScore > 5 ? 'medium' : 'low'
+          tags: isAIGenerated ? ["AI-Generated", "Basic-Analysis"] : ["Human-Created", "Basic-Analysis"],
+          marketValue: score > 7 ? 'high' : score > 5 ? 'medium' : 'low'
         }
       };
 
       const recommendation: SimpleRecommendation = {
-        status: result.isAIGenerated ? 'ai-restricted' : (result.qualityScore > 7 ? 'good' : 'fair'),
-        message: result.isAIGenerated ? 
-          '⚠️ Possible AI content detected (basic analysis)' : 
-          `✅ Human content detected (quality: ${result.qualityScore}/10)`,
-        action: result.isAIGenerated ? 
-          'Register with AI restrictions' : 
+        status: analysis.aiDetection.isAIGenerated ? 'ai-restricted' : (analysis.qualityAssessment.overall > 7 ? 'good' : 'fair'),
+        message: analysis.aiDetection.isAIGenerated ?
+          '⚠️ High-confidence AI content detected (fallback)' :
+          `✅ Human content detected (quality: ${analysis.qualityAssessment.overall}/10)`,
+        action: analysis.aiDetection.isAIGenerated ?
+          'Register with AI restrictions' :
           'Register with recommended license',
-        license: result.recommendedLicense === 'commercial' ? 'Commercial Use' : 
-                result.recommendedLicense === 'remix' ? 'Remix License' : 'Non-Commercial',
-        aiLearning: result.isAIGenerated ? '🚫 Restricted (basic protection)' : '✅ Your choice'
+        license: analysis.licenseRecommendation.primary === 'commercial' ? 'Commercial Use' :
+                analysis.licenseRecommendation.primary === 'remix' ? 'Remix License' : 'Non-Commercial',
+        aiLearning: analysis.aiDetection.isAIGenerated ? '🚫 Restricted (basic protection)' : '✅ Your choice'
       };
 
       return { analysis, recommendation };
