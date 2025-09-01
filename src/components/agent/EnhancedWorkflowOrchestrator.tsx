@@ -360,30 +360,29 @@ You can now modify the license terms or metadata before registration.`;
       fileInputRef.current?.click();
       return;
     }
-    if (buttonText === "Upload File") {
+    if (buttonText === "Upload File" || buttonText === "📁 Upload File Lain") {
       fileInputRef.current?.click();
-    } else if (buttonText === "Quick Register" && currentWorkflowResult) {
+    } else if (buttonText === "🚀 Quick Register" && currentWorkflowResult) {
       handleSmartApprove(currentWorkflowResult);
-    } else if (buttonText === "Custom License") {
+    } else if (buttonText === "Custom License" || buttonText === "✏️ Edit Metadata") {
       setShowCustomLicense(true);
     } else if (buttonText === "Custom License Terms") {
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       setShowCamera(true);
-    } else if (buttonText === "Submit for Review") {
+    } else if (buttonText === "Submit for Review" || buttonText === "📝 Submit Review") {
       setShowManualReview(true);
     } else if (buttonText === "Review & Edit" && currentWorkflowResult) {
       handleSmartEdit(currentWorkflowResult);
-    } else if (buttonText === "Retry") {
+    } else if (buttonText === "Retry" || buttonText === "🔄 Retry Analysis") {
       handleSmartRetry();
     } else if (buttonText === "Browse IP") {
       try { router.push('/dashboard'); } catch {}
-    } else if (buttonText === "Switch to Chat Mode") {
-      setWorkflowMode({ type: 'chat', active: true });
-      localStorage.setItem('preferSmartAnalysis', 'false');
-    } else if (buttonText === "Switch to Smart Mode") {
-      setWorkflowMode({ type: 'smart-analysis', active: true });
-      localStorage.setItem('preferSmartAnalysis', 'true');
+    } else if (buttonText === "📊 View Details") {
+      // Show detailed analysis in chat
+      if (currentWorkflowResult) {
+        showDetailedAnalysis(currentWorkflowResult);
+      }
     } else {
       chatAgent.processPrompt(buttonText);
     }
