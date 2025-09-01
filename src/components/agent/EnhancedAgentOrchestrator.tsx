@@ -527,6 +527,29 @@ License Type: ${result.licenseType}`;
     }
     if (buttonText === "Upload File") {
       fileInputRef.current?.click();
+    } else if (buttonText === "🧠 Use AI Recommendation") {
+      // Apply AI-recommended license settings
+      if (analysis && recommendation) {
+        const aiLicense = analysis.licenseRecommendation.primary;
+        if (aiLicense === 'commercial') {
+          setSelectedPilType('commercial_remix');
+          setSelectedRevShare(analysis.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(analysis.licenseRecommendation.suggestedTerms.mintingFee);
+        } else if (aiLicense === 'remix') {
+          setSelectedPilType('commercial_remix');
+          setSelectedRevShare(3);
+          setSelectedLicensePrice(5);
+        } else {
+          setSelectedPilType('open_use');
+          setSelectedRevShare(0);
+          setSelectedLicensePrice(0);
+        }
+
+        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${recommendation.message}\n\n**License:** ${recommendation.license}\n**AI Learning:** ${recommendation.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
+        setToast("AI recommendation applied ✅");
+      } else {
+        setToast("No AI recommendation available ❌");
+      }
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
     } else if (buttonText === "Custom License") {
@@ -550,7 +573,7 @@ License Type: ${result.licenseType}`;
     } else {
       chatAgent.processPrompt(buttonText);
     }
-  }, [chatAgent, analyzedFile, lastDHash]);
+  }, [chatAgent, analyzedFile, lastDHash, analysis, recommendation]);
 
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
