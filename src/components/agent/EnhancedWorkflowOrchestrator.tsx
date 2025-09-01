@@ -471,25 +471,19 @@ You can now modify the license terms or metadata before registration.`;
             </div>
           </div>
 
-          {/* Dynamic Content Area */}
+          {/* Chat Content Area */}
           <section className="flex-1 rounded-2xl border border-white/10 bg-white/5 overflow-hidden flex flex-col min-h-0">
-            {/* Content Container */}
+            {/* Messages Area */}
             <div
               ref={chatScrollRef}
               className="flex-1 overflow-y-auto scrollbar-invisible"
             >
               <div className="mx-auto w-full max-w-[900px] px-2 sm:px-3 lg:px-4 py-3 lg:py-4">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={workflowMode.type}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {renderWorkflowContent()}
-                  </motion.div>
-                </AnimatePresence>
+                <MessageList
+                  messages={chatAgent.messages}
+                  onButtonClick={handleButtonClick}
+                  isTyping={chatAgent.isTyping}
+                />
 
                 {/* Registration Progress Overlay */}
                 {registrationInProgress && (
@@ -508,22 +502,20 @@ You can now modify the license terms or metadata before registration.`;
               </div>
             </div>
 
-            {/* Composer - Only show in chat mode */}
-            {workflowMode.type === 'chat' && (
-              <div className="shrink-0">
-                <Composer
-                  onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined)}
-                  status={chatAgent.status}
-                  file={fileUpload.file}
-                  onFileSelect={fileUpload.handleFileSelect}
-                  onFileRemove={fileUpload.removeFile}
-                  previewUrl={fileUpload.previewUrl}
-                  isTyping={chatAgent.isTyping}
-                  awaitingInput={chatAgent.awaitingInput}
-                  messages={chatAgent.messages}
-                />
-              </div>
-            )}
+            {/* Composer */}
+            <div className="shrink-0">
+              <Composer
+                onSubmit={(prompt) => chatAgent.processPrompt(prompt, fileUpload.file || undefined)}
+                status={chatAgent.status}
+                file={fileUpload.file}
+                onFileSelect={fileUpload.handleFileSelect}
+                onFileRemove={fileUpload.removeFile}
+                previewUrl={fileUpload.previewUrl}
+                isTyping={chatAgent.isTyping}
+                awaitingInput={chatAgent.awaitingInput}
+                messages={chatAgent.messages}
+              />
+            </div>
           </section>
         </div>
       </div>
