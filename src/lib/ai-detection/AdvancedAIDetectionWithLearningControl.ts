@@ -120,63 +120,82 @@ Be thorough and specific in your analysis.`
   }
 
   private enhanceAnalysisWithAIControls(rawAnalysis: any): AdvancedAnalysisResult {
-    const enhanced = { ...rawAnalysis };
-    
-    // Auto-disable AI learning for AI-generated content
-    if (enhanced.aiDetection?.isAIGenerated && enhanced.aiDetection?.confidence > 0.7) {
+    const enhanced: any = { ...rawAnalysis };
+
+    // Safe defaults
+    enhanced.aiDetection = enhanced.aiDetection || { isAIGenerated: false, confidence: 0, indicators: [] };
+    enhanced.aiDetection.confidence = Math.max(0, Math.min(1, Number(enhanced.aiDetection.confidence || 0)));
+    enhanced.aiDetection.indicators = Array.isArray(enhanced.aiDetection.indicators) ? enhanced.aiDetection.indicators : [];
+    enhanced.content = enhanced.content || { tags: [] };
+    enhanced.content.tags = Array.isArray(enhanced.content.tags) ? enhanced.content.tags : [];
+    enhanced.licenseRecommendation = enhanced.licenseRecommendation || { suggestedTerms: {} };
+    enhanced.licenseRecommendation.suggestedTerms = enhanced.licenseRecommendation.suggestedTerms || {};
+    enhanced.ipEligibility = enhanced.ipEligibility || { score: 0, reasons: [], risks: [], requirements: [] };
+
+    const conf = enhanced.aiDetection.confidence;
+
+    // Be conservative: if low confidence or no indicators, treat as human
+    if (enhanced.aiDetection.isAIGenerated && (conf < 0.65 || enhanced.aiDetection.indicators.length === 0)) {
+      enhanced.aiDetection.isAIGenerated = false;
+      enhanced.aiDetection.learningRestriction = 'enabled';
+      enhanced.licenseRecommendation.aiLearningAllowed = true;
+      enhanced.licenseRecommendation.suggestedTerms.aiTrainingRestricted = false;
+      enhanced.licenseRecommendation.robotTerms = { userAgent: '*', allow: 'Allow: / # Low confidence, treated as human' };
+      enhanced.content.tags = [...enhanced.content.tags, 'Low-Confidence-Override'];
+    }
+
+    if (enhanced.aiDetection.isAIGenerated && conf >= 0.85) {
+      // High confidence AI-generated
       enhanced.licenseRecommendation.aiLearningAllowed = false;
       enhanced.licenseRecommendation.suggestedTerms.aiTrainingRestricted = true;
       enhanced.aiDetection.learningRestriction = 'disabled';
-      
-      // Create restrictive robot terms
+
       enhanced.licenseRecommendation.robotTerms = {
-        userAgent: "*",
-        allow: "Disallow: /\nUser-agent: GPTBot\nDisallow: /\nUser-agent: ChatGPT-User\nDisallow: /\nUser-agent: CCBot\nDisallow: /\nUser-agent: anthropic-ai\nDisallow: /\nUser-agent: Claude-Web\nDisallow: /"
+        userAgent: '*',
+        allow: 'Disallow: /\nUser-agent: GPTBot\nDisallow: /\nUser-agent: ChatGPT-User\nDisallow: /\nUser-agent: CCBot\nDisallow: /\nUser-agent: anthropic-ai\nDisallow: /\nUser-agent: Claude-Web\nDisallow: /'
       };
-      
-      // Add AI-specific tags
+
       enhanced.content.tags = [
         ...enhanced.content.tags,
         'AI-Generated',
         'No-AI-Training',
         'Training-Restricted'
       ];
-      
-      // Adjust IP eligibility for AI content
-      enhanced.ipEligibility.score = Math.max(0, enhanced.ipEligibility.score - 20);
-      enhanced.ipEligibility.risks.push("AI-generated content has limited IP protection");
-      enhanced.ipEligibility.requirements.push("Verify human creative input and authorship");
-      
-    } else if (enhanced.aiDetection?.isAIGenerated && enhanced.aiDetection?.confidence > 0.4) {
-      // Conditional restrictions for possible AI content
+
+      enhanced.ipEligibility.score = Math.max(0, (enhanced.ipEligibility.score || 0) - 20);
+      enhanced.ipEligibility.risks.push('AI-generated content has limited IP protection');
+      enhanced.ipEligibility.requirements.push('Verify human creative input and authorship');
+
+    } else if (enhanced.aiDetection.isAIGenerated && conf >= 0.65) {
+      // Medium confidence AI-generated
       enhanced.aiDetection.learningRestriction = 'conditional';
       enhanced.licenseRecommendation.aiLearningAllowed = false;
       enhanced.licenseRecommendation.suggestedTerms.aiTrainingRestricted = true;
-      
+
       enhanced.licenseRecommendation.robotTerms = {
-        userAgent: "AI-Crawlers",
-        allow: "Disallow: / # Conditional AI training restriction"
+        userAgent: 'AI-Crawlers',
+        allow: 'Disallow: / # Conditional AI training restriction'
       };
-      
+
     } else {
-      // Human-created content - allow AI learning by default but give option to restrict
+      // Human-created content
       enhanced.aiDetection.learningRestriction = 'enabled';
       enhanced.licenseRecommendation.aiLearningAllowed = true;
       enhanced.licenseRecommendation.suggestedTerms.aiTrainingRestricted = false;
-      
+
       enhanced.licenseRecommendation.robotTerms = {
-        userAgent: "*",
-        allow: "Allow: / # Human-created content, AI training allowed"
+        userAgent: '*',
+        allow: 'Allow: / # Human-created content, AI training allowed'
       };
     }
-    
+
     // Enhance IP eligibility calculation
     enhanced.ipEligibility = this.calculateEnhancedIPEligibility(enhanced);
-    
+
     // Refine license recommendation
     enhanced.licenseRecommendation = this.refineLicenseWithAIControls(enhanced);
-    
-    return enhanced;
+
+    return enhanced as AdvancedAnalysisResult;
   }
 
   private calculateEnhancedIPEligibility(analysis: any): any {
