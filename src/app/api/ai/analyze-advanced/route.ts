@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { AdvancedAIDetectionWithLearningControl } from "@/lib/ai-detection/AdvancedAIDetectionWithLearningControl";
+import { FallbackAIDetection } from "@/lib/ai-detection/FallbackAIDetection";
 import { AdvancedAnalysisResult } from "@/types/ai-detection";
 
 export async function POST(req: Request) {
@@ -21,17 +22,38 @@ export async function POST(req: Request) {
       }, { status: 500 });
     }
 
-    const detector = new AdvancedAIDetectionWithLearningControl();
-    
     // Convert base64 to data URL if needed
     let finalImageUrl = imageUrl;
     if (imageBase64 && !imageUrl) {
       finalImageUrl = `data:image/jpeg;base64,${imageBase64}`;
     }
 
-    // Perform comprehensive analysis
-    const analysis: AdvancedAnalysisResult = await detector.analyzeImage(finalImageUrl);
-    const simpleRecommendation = detector.getSimpleRecommendationWithAIControl(analysis);
+    let analysis: AdvancedAnalysisResult;
+    let simpleRecommendation: any;
+
+    try {
+      // Try advanced analysis first
+      const detector = new AdvancedAIDetectionWithLearningControl();
+      analysis = await detector.analyzeImage(finalImageUrl);
+      simpleRecommendation = detector.getSimpleRecommendationWithAIControl(analysis);
+    } catch (advancedError) {
+      console.warn("Advanced analysis failed, trying fallback:", advancedError);
+
+      try {
+        // Fallback to simpler analysis
+        const fallbackDetector = new FallbackAIDetection();
+        const fallbackResult = await fallbackDetector.analyzeImageBasic(finalImageUrl);
+        analysis = fallbackResult.analysis;
+        simpleRecommendation = fallbackResult.recommendation;
+
+        // Add fallback indicator
+        analysis.content.tags.push("Fallback-Analysis");
+        simpleRecommendation.message += " (using fallback analysis)";
+      } catch (fallbackError) {
+        console.error("Both advanced and fallback analysis failed:", fallbackError);
+        throw new Error(`Analysis failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`);
+      }
+    }
     
     // Generate enhanced metadata if user address provided
     let metadata = null;
