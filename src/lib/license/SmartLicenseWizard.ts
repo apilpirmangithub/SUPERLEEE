@@ -17,9 +17,11 @@ export interface SimpleLicenseOptions {
   blockAITraining: boolean;
 }
 
+import { STORY_CONTRACTS } from "./terms";
+
 export class SmartLicenseWizard {
   private readonly zeroAddress = "0x0000000000000000000000000000000000000000" as `0x${string}`;
-  private readonly wipToken = "0x1514000000000000000000000000000000000000" as `0x${string}`;
+  // Using Story USD as currency
   private readonly royaltyPolicy = "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E" as `0x${string}`;
 
   // Convert simple options to full PIL terms
@@ -27,7 +29,7 @@ export class SmartLicenseWizard {
     const baseTerms = {
       transferable: true,
       royaltyPolicy: this.royaltyPolicy,
-      currency: this.wipToken,
+      currency: STORY_CONTRACTS.STORY_USD,
       expiration: 0n,
       commercializerChecker: this.zeroAddress,
       commercializerCheckerData: "0x" as `0x${string}`,

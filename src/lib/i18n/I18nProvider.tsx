@@ -15,7 +15,7 @@ const translations: Record<Lang, Dict> = {
     "buttons.why": "Why?",
 
     "smart.applied.title": "AI recommendation applied 🎉",
-    "smart.applied.body": "{message}\n\nLicense: {license}\nAI Learning: {aiLearning}\n\nDetails\n- Minting fee: {mintingFee} WIP\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nContinue registration or adjust settings",
+    "smart.applied.body": "{message}\n\nLicense: {license}\nAI Learning: {aiLearning}\n\nDetails\n- Minting fee: $ {mintingFee}\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nContinue registration or adjust settings",
 
     "details.title": "Analysis details",
     "details.ai": "AI",
@@ -39,7 +39,7 @@ const translations: Record<Lang, Dict> = {
     "buttons.why": "Kenapa?",
 
     "smart.applied.title": "Rekomendasi AI diterapkan 🎉",
-    "smart.applied.body": "{message}\n\nLisensi: {license}\nAI Learning: {aiLearning}\n\nRincian\n- Minting fee: {mintingFee} WIP\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nLanjutkan registrasi atau ubah pengaturan",
+    "smart.applied.body": "{message}\n\nLisensi: {license}\nAI Learning: {aiLearning}\n\nRincian\n- Minting fee: $ {mintingFee}\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nLanjutkan registrasi atau ubah pengaturan",
 
     "details.title": "Detail analisis",
     "details.ai": "AI",

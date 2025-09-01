@@ -64,7 +64,7 @@ export class AdvancedAIDetectionWithLearningControl {
       "allow": "specific permissions or restrictions"
     },
     "suggestedTerms": {
-      "mintingFee": number (in WIP tokens),
+      "mintingFee": number (in USD),
       "commercialRevShare": number (percentage 0-100),
       "derivativesAllowed": boolean,
       "commercialUse": boolean,
