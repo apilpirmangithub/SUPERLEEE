@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { useAccount, useChainId, useSwitchChain, usePublicClient } from "wagmi";
 import { useStoryClient } from "@/lib/storyClient";
 import { compressImage } from "@/lib/utils/image";
 import { uploadFile, uploadJSON, extractCid, toHttps, toIpfsUri } from "@/lib/utils/ipfs";
