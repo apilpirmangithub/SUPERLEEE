@@ -354,7 +354,7 @@ export function EnhancedAgentOrchestrator() {
 
         // Add AI-specific button if AI analysis was successful
         if (aiResult && aiRecommendation) {
-          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "🎯 Smart License", "Copy dHash"];
+          buttons = ["🧠 Smart License", "Continue Registration", "Custom License", "Copy dHash"];
         } else {
           buttons = ["Continue Registration", "🎯 Smart License", "Copy dHash"];
         }
@@ -509,7 +509,7 @@ License Type: ${result.licenseType}`;
             };
 
             chatAgent.addCompleteMessage(message);
-            setToast("IP registered ✅");
+            setToast("IP registered ��");
           } else {
             chatAgent.updateStatus("Tx still pending on network. Check explorer.");
           }
