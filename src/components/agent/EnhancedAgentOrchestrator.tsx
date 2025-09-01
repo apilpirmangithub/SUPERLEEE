@@ -583,6 +583,7 @@ License Type: ${result.licenseType}`;
         const nextButtons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : [])];
         chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, nextButtons);
         setToast("AI recommendation applied ✅");
+        setSmartApplied(true);
       } else {
         setToast("No AI recommendation available ❌");
       }
@@ -601,6 +602,7 @@ License Type: ${result.licenseType}`;
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
     } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
+      setSmartApplied(false);
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
