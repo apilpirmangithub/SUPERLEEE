@@ -265,7 +265,7 @@ Be thorough and specific in your analysis.`
     let commercialRevShare = 5;
     let aiTrainingRestricted = false;
 
-    if (isAI && aiConfidence > 0.7) {
+    if (isAI && aiConfidence >= 0.85) {
       primary = 'nonCommercial';
       reasoning = 'AI-generated content with high confidence. Restricted to non-commercial use with AI training disabled for creator protection.';
       mintingFee = 0;
