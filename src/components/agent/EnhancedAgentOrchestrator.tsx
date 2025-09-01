@@ -204,6 +204,8 @@ export function EnhancedAgentOrchestrator() {
       if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value?.success) {
         aiResult = aiAnalysisResult.value.analysis;
         aiRecommendation = aiAnalysisResult.value.recommendation;
+        setLastAIResult(aiResult);
+        setLastAIRec(aiRecommendation);
       } else {
         // Log AI analysis failure for debugging
         console.warn('AI Analysis failed:', {
