@@ -213,6 +213,7 @@ export function useRegisterIPAgent() {
   return {
     registerState,
     executeRegister,
+    executeSimplifiedRegister,
     resetRegister,
   };
 }
