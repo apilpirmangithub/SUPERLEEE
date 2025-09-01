@@ -35,7 +35,7 @@ export function useRegisterIPAgent() {
     }
   }, [chainId, switchChainAsync]);
 
-  const executeRegister = useCallback(async (intent: RegisterIntent, file: File, licenseSettings?: LicenseSettings, options?: { customTerms?: import("@/lib/license/terms").LicenseTermsData }) => {
+  const executeRegister = useCallback(async (file: File, licenseSettings?: LicenseSettings, options?: { customTerms?: import("@/lib/license/terms").LicenseTermsData }) => {
     try {
       // Ensure we're on the right network
       await ensureAeneid();
@@ -70,10 +70,14 @@ export function useRegisterIPAgent() {
         progress: 50
       }));
 
-      // 3. Create IP metadata
+      // 3. Create IP metadata (auto-generated)
+      const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const autoTitle = fileName.charAt(0).toUpperCase() + fileName.slice(1).replace(/[-_]/g, ' ');
+      const autoDescription = `Original digital artwork: ${autoTitle}. Registered as IP asset on Story Protocol.`;
+
       const ipMetadata = {
-        title: intent.title || compressedFile.name,
-        description: intent.prompt || "",
+        title: autoTitle,
+        description: autoDescription,
         image: imageGateway,
         imageHash,
         mediaUrl: imageGateway,
@@ -82,9 +86,8 @@ export function useRegisterIPAgent() {
         creators: address
           ? [{ name: address, address, contributionPercent: 100 }]
           : [],
-        aiMetadata: intent.prompt
-          ? { prompt: intent.prompt, generator: "user", model: "rule-based" }
-          : undefined,
+        createdAt: new Date().toISOString(),
+        registrationMethod: "simplified-workflow",
       };
 
       // 4. Upload IP metadata to IPFS
@@ -124,8 +127,25 @@ export function useRegisterIPAgent() {
 
       setRegisterState(prev => ({
         ...prev,
+        status: 'checking-duplicates',
+        progress: 70
+      }));
+
+      // Check for duplicates by image hash
+      const publicClient = await import('@/lib/wagmi').then(m => m.publicClient);
+      if (publicClient) {
+        const { checkDuplicateQuick } = await import('@/lib/utils/registry');
+        const duplicateCheck = await checkDuplicateQuick(publicClient, SPG_COLLECTION, imageHash.slice(2));
+
+        if (duplicateCheck.found) {
+          throw new Error(`Duplicate image detected! This image is already registered as IP. Token ID: ${duplicateCheck.tokenId}`);
+        }
+      }
+
+      setRegisterState(prev => ({
+        ...prev,
         status: 'minting',
-        progress: 75
+        progress: 80
       }));
 
       // 7. Mint and register IP on Story Protocol with license terms
@@ -176,6 +196,11 @@ export function useRegisterIPAgent() {
       };
     }
   }, [address, getClient, ensureAeneid]);
+
+  // Simplified register function for auto-workflow
+  const executeSimplifiedRegister = useCallback(async (file: File, licenseSettings?: LicenseSettings) => {
+    return executeRegister(file, licenseSettings);
+  }, [executeRegister]);
 
   const resetRegister = useCallback(() => {
     setRegisterState({
