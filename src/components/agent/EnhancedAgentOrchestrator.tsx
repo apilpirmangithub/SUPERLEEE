@@ -570,8 +570,8 @@ License Type: ${result.licenseType}`;
           setSelectedLicensePrice(lastAIResult.licenseRecommendation.suggestedTerms.mintingFee);
         } else if (aiLicense === 'remix') {
           setSelectedPilType('commercial_remix');
-          setSelectedRevShare(3);
-          setSelectedLicensePrice(5);
+          setSelectedRevShare(lastAIResult.licenseRecommendation.suggestedTerms.commercialRevShare);
+          setSelectedLicensePrice(lastAIResult.licenseRecommendation.suggestedTerms.mintingFee);
         } else {
           setSelectedPilType('open_use');
           setSelectedRevShare(0);
@@ -581,7 +581,9 @@ License Type: ${result.licenseType}`;
         const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
         const allowCustom = lastAIResult.ipEligibility.score >= minForCustom;
         const nextButtons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : [])];
-        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, nextButtons);
+        const st = lastAIResult.licenseRecommendation.suggestedTerms;
+        const more = `\n• Minting Fee: ${st.mintingFee} WIP\n• Revenue Share: ${st.commercialRevShare}%\n• Commercial Use: ${st.commercialUse ? 'Allowed' : 'Restricted'}\n• Derivatives: ${st.derivativesAllowed ? 'Allowed' : 'Restricted'}`;
+        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}${more}\n\nYou can now proceed with registration or make further adjustments.`, nextButtons);
         setToast("AI recommendation applied ✅");
         setSmartApplied(true);
       } else {
