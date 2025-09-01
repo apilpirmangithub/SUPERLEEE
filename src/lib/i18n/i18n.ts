@@ -14,6 +14,23 @@ const translations: Record<Lang, Dict> = {
     "buttons.copyDHash": "Copy dHash",
     "buttons.takePhoto": "Take Photo",
     "buttons.submitReview": "Submit for Review",
+    "buttons.why": "Why?",
+
+    // Smart license summaries and details
+    "smart.applied.title": "AI recommendation applied 🎉",
+    "smart.applied.body": "{message}\n\nLicense: {license}\nAI Learning: {aiLearning}\n\nDetails\n- Minting fee: {mintingFee} WIP\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nContinue registration or adjust settings",
+    "details.title": "Analysis details",
+    "details.ai": "AI",
+    "details.quality": "Quality",
+    "details.ip": "IP",
+    "details.license": "License",
+    "details.risk": "Risk",
+    "details.suggestion": "Suggestion",
+    "toasts.aiApplied": "AI recommendation applied ✅",
+    "toasts.noAI": "No AI recommendation available ❌",
+    "generic.noMoreDetails": "No additional details available",
+    "yes": "allowed",
+    "no": "restricted",
 
     // Engine messages
     "greeting.default": "Hello! I am your IP assistant. Upload an image to register, or pick an option below.",
