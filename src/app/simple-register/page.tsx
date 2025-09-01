@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { RegisterIPPanel } from "@/components/RegisterIPPanel";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
