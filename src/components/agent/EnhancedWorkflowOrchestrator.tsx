@@ -71,7 +71,6 @@ export function EnhancedWorkflowOrchestrator() {
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
     try { fileUpload.removeFile(); } catch {}
-    setWorkflowMode({ type: 'chat', active: false });
     setCurrentWorkflowResult(null);
     setToast(null);
   }, [chatAgent, fileUpload]);
@@ -79,7 +78,6 @@ export function EnhancedWorkflowOrchestrator() {
   const handleOpenSession = useCallback((id: string) => {
     chatAgent.openSession(id);
     try { fileUpload.removeFile(); } catch {}
-    setWorkflowMode({ type: 'chat', active: false });
     setCurrentWorkflowResult(null);
     setToast(null);
   }, [chatAgent, fileUpload]);
