@@ -575,7 +575,10 @@ License Type: ${result.licenseType}`;
           setSelectedLicensePrice(0);
         }
 
-        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, ["Continue Registration", "Custom License"]);
+        const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
+        const allowCustom = lastAIResult.ipEligibility.score >= minForCustom;
+        const nextButtons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : [])];
+        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}\n\nYou can now proceed with registration or make further adjustments.`, nextButtons);
         setToast("AI recommendation applied ✅");
       } else {
         setToast("No AI recommendation available ❌");
