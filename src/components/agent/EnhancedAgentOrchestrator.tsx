@@ -154,47 +154,98 @@ export function EnhancedAgentOrchestrator() {
     }, 100);
 
     try {
-      // Run IP status and whitelist in parallel
-      const mode = (process.env.NEXT_PUBLIC_IP_STATUS_MODE || 'client').toLowerCase();
-      const clientIPText = 'Status: Local assessment\nRisk: Medium\nTolerance: Proceed with caution';
-      const ipPromise = mode === 'server' ? detectIPStatus(currentFile) : Promise.resolve({ result: clientIPText });
+      // Convert file to base64 for AI analysis
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            const base64 = (e.target.result as string).split(',')[1];
+            resolve(base64);
+          }
+        };
+        reader.readAsDataURL(currentFile);
+      });
+
+      const base64 = await base64Promise;
+
+      // Run advanced AI analysis and whitelist check in parallel
       const wlPromise = isWhitelistedImage(currentFile);
 
-      const [ipResultSettled, wlSettled] = await Promise.allSettled([ipPromise, wlPromise]);
-
-
-      // Handle IP status result
-      let ipText = "Status: Unknown\nRisk: Unable to determine\nTolerance: Good to register, please verify manually";
-      if (ipResultSettled.status === 'fulfilled') {
-        ipText = ipResultSettled.value.result;
+      let aiAnalysisPromise: Promise<any>;
+      try {
+        aiAnalysisPromise = fetch('/api/ai/analyze-advanced', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64 }),
+        }).then(res => res.json());
+      } catch {
+        aiAnalysisPromise = Promise.resolve(null);
       }
 
-      // Whitelist override: If whitelisted, always treat as safe regardless of OpenAI assessment
+      const [aiAnalysisResult, wlSettled] = await Promise.allSettled([aiAnalysisPromise, wlPromise]);
+
+      // Handle whitelist result
       const wl = wlSettled.status === 'fulfilled' ? wlSettled.value : { whitelisted: false, reason: '', hash: '' };
-      if (wl.whitelisted) {
-        ipText = `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register`;
+
+      // Get AI analysis results
+      let aiResult: AdvancedAnalysisResult | null = null;
+      let aiRecommendation: SimpleRecommendation | null = null;
+
+      if (aiAnalysisResult.status === 'fulfilled' && aiAnalysisResult.value?.success) {
+        aiResult = aiAnalysisResult.value.analysis;
+        aiRecommendation = aiAnalysisResult.value.recommendation;
       }
 
+      // Create comprehensive analysis text
+      let ipText = "";
 
-      // Normalize OpenAI response for non-whitelisted: don't allow "Good to register" unless Risk: Low
-      if (!wl.whitelisted) {
-        const lines = ipText.split('\n');
-        const riskIdx = lines.findIndex(l => l.toLowerCase().startsWith('risk:'));
-        const tolIdx = lines.findIndex(l => l.toLowerCase().startsWith('tolerance:'));
-        const riskLineLower = (riskIdx >= 0 ? lines[riskIdx] : '').toLowerCase();
-        const tolLower = (tolIdx >= 0 ? lines[tolIdx] : '').toLowerCase();
-        const riskLow = riskLineLower.includes('low');
-        const toleranceGood = tolLower.includes('good to register');
-        if (toleranceGood && !riskLow && tolIdx >= 0) {
-          lines[tolIdx] = 'Tolerance: Proceed with caution';
-          ipText = lines.join('\n');
+      if (aiResult && aiRecommendation) {
+        // Advanced AI analysis successful
+        const aiStatus = aiResult.aiDetection.isAIGenerated ?
+          `🤖 AI-Generated (${Math.round(aiResult.aiDetection.confidence * 100)}% confidence)` :
+          `✨ Human-Created (${Math.round((1 - aiResult.aiDetection.confidence) * 100)}% confidence)`;
+
+        const qualityScore = `${aiResult.qualityAssessment.overall}/10`;
+        const ipScore = `${aiResult.ipEligibility.score}/100`;
+        const riskLevel = aiResult.ipEligibility.score >= 80 ? 'Low' :
+                         aiResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
+        const tolerance = aiResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
+
+        ipText = `🧠 **Advanced AI Analysis Complete**
+
+**AI Detection:** ${aiStatus}
+**Quality Score:** ${qualityScore} (Technical: ${Math.round(Object.values(aiResult.qualityAssessment.technical).reduce((a:number,b:number) => a+b, 0)/5)}/10, Artistic: ${Math.round(Object.values(aiResult.qualityAssessment.artistic).reduce((a:number,b:number) => a+b, 0)/4)}/10)
+**IP Eligibility:** ${ipScore} - ${aiResult.ipEligibility.isEligible ? '✅ Eligible' : '❌ Not Eligible'}
+
+**Smart Recommendation:** ${aiRecommendation.message}
+**Suggested License:** ${aiRecommendation.license}
+**AI Learning:** ${aiRecommendation.aiLearning}
+
+**Content:** ${aiResult.content.type} - ${aiResult.content.category}
+**Market Value:** ${aiResult.content.marketValue.toUpperCase()}
+
+Risk: ${riskLevel}
+Tolerance: ${tolerance}`;
+
+        // Add AI-specific warnings
+        if (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7) {
+          ipText += `\n\n⚠️ **AI Protection Active:** AI training automatically disabled for your protection.`;
         }
-        // Optional hard clamp for non-whitelisted (default true via env)
-        const alwaysCaution = (process.env.NEXT_PUBLIC_NON_WL_ALWAYS_CAUTION ?? 'true') === 'true';
-        if (alwaysCaution && tolIdx >= 0) {
-          lines[tolIdx] = 'Tolerance: Proceed with caution';
-          ipText = lines.join('\n');
+
+        if (aiResult.ipEligibility.risks.length > 0) {
+          ipText += `\n\n🛡️ **Important Considerations:**\n${aiResult.ipEligibility.risks.slice(0, 2).map(risk => `• ${risk}`).join('\n')}`;
         }
+
+      } else {
+        // Fallback to basic analysis
+        ipText = wl.whitelisted ?
+          `Status: Looks suitable for registration.\nRisk: Low\nTolerance: Good to register` :
+          `Status: Basic assessment\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ Advanced AI analysis unavailable - using basic assessment.`;
+      }
+
+      // Whitelist override: If whitelisted, always treat as safe
+      if (wl.whitelisted) {
+        ipText = `✅ **Whitelisted Content Detected**\n\nStatus: Pre-approved for registration\nRisk: Low\nTolerance: Good to register\n\n${aiResult ? '🧠 AI analysis also available above.' : ''}`;
       }
 
       setLastDHash(wl.hash || null);
