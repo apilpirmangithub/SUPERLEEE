@@ -785,6 +785,7 @@ License Type: ${result.licenseType}`;
                     selectedPilType={selectedPilType}
                     selectedRevShare={selectedRevShare}
                     selectedLicensePrice={selectedLicensePrice}
+                    hideLicenseControls={smartApplied}
                     onLicenseChange={({ pilType, revShare, licensePrice }) => {
                       if (pilType) setSelectedPilType(pilType);
                       if (typeof revShare === 'number') setSelectedRevShare(revShare);
