@@ -444,7 +444,7 @@ export class ChatCommandProcessor {
     options?: Partial<Pick<ChatMessage, 'buttons' | 'image' | 'links' | 'isLoading'>>
   ): ChatMessage {
     return {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       role,
       content,
       timestamp: new Date().toISOString(),
