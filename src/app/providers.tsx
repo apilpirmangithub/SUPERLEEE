@@ -34,11 +34,15 @@ function RKTheme({ children }: { children: React.ReactNode }) {
 
 const qc = new QueryClient();
 
+import { I18nProvider } from "@/lib/i18n/I18nProvider";
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={qc}>
-        <RKTheme>{children}</RKTheme>
+        <I18nProvider>
+          <RKTheme>{children}</RKTheme>
+        </I18nProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
