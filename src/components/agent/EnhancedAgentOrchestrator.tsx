@@ -370,6 +370,8 @@ export function EnhancedAgentOrchestrator() {
         buttons = buttons.filter(b => b !== "Continue Registration");
       }
 
+      if (!buttons.includes("Why?")) buttons.push("Why?");
+
       // If duplicate, hide safe IP text and show remix tolerance guidance
       const duplicateBlockText = `\n\nDuplicate detected: this image is already registered as IP${dupTokenId ? ` (Token ID: ${dupTokenId})` : ''}. Registration is blocked.\nTolerance: Allowed to register as a remix`;
       const textToShow = dupFound ? `${ipText}${duplicateBlockText}` : ipText;
