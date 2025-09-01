@@ -412,7 +412,7 @@ Be thorough and specific in your analysis.`
         license: 'Non-Commercial - AI Training Blocked',
         aiLearning: '🚫 Disabled - Protects your AI-generated content'
       };
-    } else if (isAI && aiConfidence > 0.4) {
+    } else if (isAI && aiConfidence >= 0.65) {
       return {
         status: 'fair',
         message: '⚠️ Possible AI content. AI training restricted as precaution.',
