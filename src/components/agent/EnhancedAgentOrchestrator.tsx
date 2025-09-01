@@ -582,8 +582,8 @@ License Type: ${result.licenseType}`;
         const allowCustom = lastAIResult.ipEligibility.score >= minForCustom;
         const nextButtons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : [])];
         const st = lastAIResult.licenseRecommendation.suggestedTerms;
-        const more = `\n• Minting Fee: ${st.mintingFee} WIP\n• Revenue Share: ${st.commercialRevShare}%\n• Commercial Use: ${st.commercialUse ? 'Allowed' : 'Restricted'}\n• Derivatives: ${st.derivativesAllowed ? 'Allowed' : 'Restricted'}`;
-        chatAgent.addMessage("agent", `🧠 **AI Recommendation Applied!**\n\n${lastAIRec.message}\n\n**License:** ${lastAIRec.license}\n**AI Learning:** ${lastAIRec.aiLearning}${more}\n\nYou can now proceed with registration or make further adjustments.`, nextButtons);
+        const msg = `Rekomendasi AI diterapkan 🎉\n\n${lastAIRec.message}\n\nLisensi: ${lastAIRec.license}\nAI Learning: ${lastAIRec.aiLearning}\n\nRincian\n- Minting fee: ${st.mintingFee} WIP\n- Revenue share: ${st.commercialRevShare}%\n- Commercial use: ${st.commercialUse ? 'diizinkan' : 'dibatasi'}\n- Derivatives: ${st.derivativesAllowed ? 'diizinkan' : 'dibatasi'}\n\nLanjutkan registrasi atau ubah pengaturan`;
+        chatAgent.addMessage("agent", msg, nextButtons);
         setToast("AI recommendation applied ✅");
         setSmartApplied(true);
       } else {
@@ -596,10 +596,10 @@ License Type: ${result.licenseType}`;
         const ipScore = `${lastAIResult.ipEligibility.score}/100`;
         const riskLevel = lastAIResult.ipEligibility.score >= 80 ? 'Low' : lastAIResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
         const tolerance = lastAIResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
-        const details = `🧠 Advanced Details\n• AI: ${aiStatus}\n• Quality: ${qualityScore}\n• IP: ${ipScore} (${lastAIResult.ipEligibility.isEligible ? 'Eligible' : 'Not Eligible'})\n• License: ${lastAIRec.license}\n• Risk: ${riskLevel}\n• Tolerance: ${tolerance}`;
+        const details = `Detail analisis\nAI: ${aiStatus}\nKualitas: ${qualityScore}\nIP: ${ipScore} - ${lastAIResult.ipEligibility.isEligible ? 'eligible' : 'not eligible'}\nLisensi: ${lastAIRec.license}\nRisiko: ${riskLevel}\nSaran: ${tolerance}`;
         chatAgent.addMessage("agent", details);
       } else {
-        chatAgent.addMessage("agent", "No additional details available.");
+        chatAgent.addMessage("agent", "Tidak ada detail tambahan");
       }
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
