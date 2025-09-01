@@ -16,7 +16,7 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
-import CustomLicenseTermsSelector from "@/components/CustomLicenseTermsSelector";
+import SimpleLicenseWizard from "@/components/SimpleLicenseWizard";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
 import { detectIPStatus } from "@/services";
@@ -378,7 +378,9 @@ Tolerance: ${tolerance}`;
 
         // Add AI-specific button if AI analysis was successful
         if (aiResult && aiRecommendation) {
-          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "Custom License", "Copy dHash"];
+          buttons = ["🧠 Use AI Recommendation", "Continue Registration", "🎯 Smart License", "Copy dHash"];
+        } else {
+          buttons = ["Continue Registration", "🎯 Smart License", "Copy dHash"];
         }
       }
       if (faceDetected || requiresIdentity) {
@@ -590,7 +592,7 @@ License Type: ${result.licenseType}`;
       }
     } else if (buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
-    } else if (buttonText === "Custom License") {
+    } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
       if (!referenceFile && analyzedFile) setReferenceFile(analyzedFile);
@@ -820,10 +822,15 @@ License Type: ${result.licenseType}`;
         style={{ display: 'none' }}
       />
 
-      {/* Custom License Modal */}
+      {/* Smart License Wizard */}
       {showCustomLicense && (
-        <CustomLicenseTermsSelector
-          onSubmit={(t) => { setCustomTerms(t); setShowCustomLicense(false); chatAgent.addMessage('agent', 'Custom license terms set. Click Continue Registration to proceed.'); }}
+        <SimpleLicenseWizard
+          onLicenseSelect={(data) => {
+            setCustomTerms(data.terms);
+            setShowCustomLicense(false);
+            chatAgent.addMessage('agent', `✨ **Smart License Created!**\n\n**${data.name}**\n${data.description}\n\nClick Continue Registration to proceed with your custom license.`);
+            setToast("Smart license created ✅");
+          }}
           onClose={() => setShowCustomLicense(false)}
         />
       )}
@@ -859,7 +866,7 @@ License Type: ${result.licenseType}`;
             text: `Permohonan review terkirim ✅\nCID: ${cid}`,
             links: [{ text: 'Lihat berkas review di IPFS', url }]
           });
-          setToast('Review submitted �����');
+          setToast('Review submitted ���');
         }}
       />
     </div>

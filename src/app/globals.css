@@ -2,150 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ====== THEME VARS ====== */
-/* Default: LIGHT */
-:root {
-  --ai-bg: #f7fafc;
-  --ai-fg: #0b1220;
-  --ai-card: rgba(0,0,0,0.04);
-  --ai-border: rgba(0,0,0,0.12);
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-/* DARK overrides (aktif saat <html class="dark">) */
-.dark {
-  --ai-bg: #0b0f1a;
-  --ai-fg: #e5f0ff;
-  --ai-card: rgba(255,255,255,0.06);
-  --ai-border: rgba(255,255,255,0.12);
+@layer components {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .hover-glow {
+    transition: all 0.2s ease;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+  }
+
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-bounce {
+    transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Custom range slider styling */
+  .slider {
+    background: linear-gradient(to right, #60a5fa 0%, #60a5fa var(--value, 20%), rgba(255,255,255,0.2) var(--value, 20%), rgba(255,255,255,0.2) 100%);
+  }
+
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60a5fa, #22d3ee);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #60a5fa, #22d3ee);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
 }
 
-/* === Transparent page scrollbars (outer) === */
-html, body {
-  overflow-y: auto;
-  overflow-x: hidden;            /* cegah scrollbar horizontal global */
-  scrollbar-width: thin;         /* Firefox */
-  scrollbar-color: transparent transparent;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background: transparent;       /* WebKit */
-}
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* Tetap ada util untuk elemen tertentu */
-.scrollbar-invisible { scrollbar-width: none; }
-.scrollbar-invisible::-webkit-scrollbar { display: none; }
-
-/* gradient biru-cyan lembut (opsional, untuk body) */
-.bg-ai {
-  background:
-    radial-gradient(60% 60% at 20% 0%, rgba(56,189,248,.14), transparent),
-    radial-gradient(40% 60% at 80% 20%, rgba(14,165,233,.10), transparent);
-}
-
-/* ====== COMPONENT PRIMITIVES ====== */
-.card {
-  @apply rounded-2xl p-5 shadow-glow backdrop-blur;
-  border: 1px solid var(--ai-border);
-  background: var(--ai-card);
-}
-
-/* Hide/Invisible scrollbar — satu versi saja */
-.scrollbar-invisible {
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE/Edge legacy */
-}
-.scrollbar-invisible::-webkit-scrollbar {
-  width: 0;
-  height: 0;                    /* Chrome/Safari */
-}
-
-/* Pixel-art tetap tajam */
-.pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
-
-/* ====== ANIMATIONS ====== */
-@keyframes kenburns { 0%{transform:scale(1)} 100%{transform:scale(1.08) translate3d(-1%,-1%,0)} }
-@keyframes floatY   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes slideUp  { 0%{transform:translateY(20px); opacity:0} 100%{transform:translateY(0); opacity:1} }
-@keyframes slideIn  { 0%{transform:translateX(-20px); opacity:0} 100%{transform:translateX(0); opacity:1} }
-@keyframes fadeIn   { 0%{opacity:0} 100%{opacity:1} }
-@keyframes scaleIn  { 0%{transform:scale(0.95); opacity:0} 100%{transform:scale(1); opacity:1} }
-@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.5} }
-
-.animate-kenburns { animation: kenburns 28s ease-in-out infinite alternate; }
-.animate-float    { animation: floatY 7.5s ease-in-out infinite; }
-.animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
-.animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
-.animate-fade-in  { animation: fadeIn 0.2s ease-out forwards; }
-.animate-scale-in { animation: scaleIn 0.2s ease-out forwards; }
-.animate-pulse-slow { animation: pulse 2s ease-in-out infinite; }
-
-/* Smooth transitions for interactive elements */
-.transition-smooth {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.transition-bounce {
-  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-/* Message enter animation */
-.message-enter {
-  animation: slideUp 0.3s ease-out forwards;
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-/* Hover effects */
-.hover-lift:hover {
-  transform: translateY(-2px);
-  transition: transform 0.2s ease-out;
-}
-
-.hover-glow:hover {
-  box-shadow: 0 8px 32px rgba(96, 165, 250, 0.15);
-  transition: box-shadow 0.3s ease-out;
-}
-
-/* Grid overlay anim (match dengan tailwind keyframes/animation yang kamu set) */
-.ai-grid {
-  background-image:
-    linear-gradient(transparent 0 0),
-    linear-gradient(transparent 0 0),
-    linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  animation: grid 30s linear infinite;
-}
-
-/* ====== BG LAYERS ====== */
-.hero-layer { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
-.hero-vignette{
-  position:absolute; inset:0;
-  background:
-    radial-gradient(60% 50% at 70% 35%, rgba(11,15,26,0) 0%, rgba(11,15,26,.25) 70%, rgba(11,15,26,.5) 100%),
-    linear-gradient(180deg, rgba(11,15,26,.35) 0%, rgba(11,15,26,.15) 35%, rgba(11,15,26,.45) 100%);
-}
-
-/* --- Chat bubble content: wrap agresif utk hash/addr panjang --- */
-.msg-pre {
-  white-space: pre-wrap;          /* hormati newline */
-  overflow-wrap: anywhere;        /* paksa pecah di mana saja */
-  word-break: break-word;         /* fallback */
-}
-
-/* Badge utility class */
-.badge {
-  @apply inline-block px-2 py-1 text-xs bg-white/10 border border-white/15 rounded-md;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
