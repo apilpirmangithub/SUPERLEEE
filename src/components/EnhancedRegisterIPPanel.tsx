@@ -331,7 +331,7 @@ export function EnhancedRegisterIPPanel({ onRegister, className = "" }: Enhanced
             {analysis && (
               <div className="text-xs text-white/60 mt-1 space-y-1">
                 <p>• AI Training: {selectedLicense.aiLearning ? '✅ Allowed' : '🚫 Restricted'}</p>
-                <p>• Minting Fee: {selectedLicense.mintingFee} {selectedLicense.currency}</p>
+                <p>• Minting Fee: ${selectedLicense.mintingFee}</p>
                 {selectedLicense.commercialUse && (
                   <p>• Revenue Share: {selectedLicense.revShare}%</p>
                 )}
