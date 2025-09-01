@@ -188,7 +188,7 @@ export class ChatCommandProcessor {
 
     // Add the repeated message
     const repeatedMessage: ChatMessage = {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: lastUserMessage.content,
       timestamp: new Date().toISOString()
