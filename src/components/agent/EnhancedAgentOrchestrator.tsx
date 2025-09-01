@@ -215,45 +215,17 @@ export function EnhancedAgentOrchestrator() {
         });
       }
 
-      // Create comprehensive analysis text
+      // Create simplified chat message
       let ipText = "";
 
       if (aiResult && aiRecommendation) {
-        // Advanced AI analysis successful
-        const aiStatus = aiResult.aiDetection.isAIGenerated ?
-          `🤖 AI-Generated (${Math.round(aiResult.aiDetection.confidence * 100)}% confidence)` :
-          `✨ Human-Created (${Math.round((1 - aiResult.aiDetection.confidence) * 100)}% confidence)`;
+        const isHighConfidenceAI = aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence >= 0.85;
+        const mainTitle = isHighConfidenceAI ? '🤖 AI Content' : '✨ Great Work';
+        const subtitle = isHighConfidenceAI ? 'This looks like it was made by AI' : 'Looks human-made';
+        const nextAction = aiRecommendation.status === 'ai-restricted' ? 'Register for Free Sharing' :
+          (aiRecommendation.status === 'excellent' || aiRecommendation.status === 'good') ? 'Sell (Commercial License)' : 'Share for Free';
 
-        const qualityScore = `${aiResult.qualityAssessment.overall}/10`;
-        const ipScore = `${aiResult.ipEligibility.score}/100`;
-        const riskLevel = aiResult.ipEligibility.score >= 80 ? 'Low' :
-                         aiResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
-        const tolerance = aiResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
-
-        ipText = `🧠 **Advanced AI Analysis Complete**
-
-**AI Detection:** ${aiStatus}
-**Quality Score:** ${qualityScore} (Technical: ${Math.round(Object.values(aiResult.qualityAssessment.technical).reduce((a:number,b:number) => a+b, 0)/5)}/10, Artistic: ${Math.round(Object.values(aiResult.qualityAssessment.artistic).reduce((a:number,b:number) => a+b, 0)/4)}/10)
-**IP Eligibility:** ${ipScore} - ${aiResult.ipEligibility.isEligible ? '✅ Eligible' : '❌ Not Eligible'}
-
-**Smart Recommendation:** ${aiRecommendation.message}
-**Suggested License:** ${aiRecommendation.license}
-**AI Learning:** ${aiRecommendation.aiLearning}
-
-**Content:** ${aiResult.content.type} - ${aiResult.content.category}
-**Market Value:** ${aiResult.content.marketValue.toUpperCase()}
-
-Risk: ${riskLevel}
-Tolerance: ${tolerance}`;
-
-        // Add AI-specific warnings
-        if (aiResult.aiDetection.isAIGenerated && aiResult.aiDetection.confidence > 0.7) {
-          ipText += `\n\n⚠️ **AI Protection Active:** AI training automatically disabled for your protection.`;
-        }
-
-        if (aiResult.ipEligibility.risks.length > 0) {
-          ipText += `\n\n🛡️ **Important Considerations:**\n${aiResult.ipEligibility.risks.slice(0, 2).map(risk => `• ${risk}`).join('\n')}`;
-        }
+        ipText = `${mainTitle}\n${subtitle}\nNext: ${nextAction}`;
 
       } else {
         // Fallback to basic analysis with more detailed error info
