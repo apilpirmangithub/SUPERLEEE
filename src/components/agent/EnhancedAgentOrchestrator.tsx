@@ -5,8 +5,10 @@ import { waitForTxConfirmation } from "@/lib/utils/transaction";
 import { useChatAgent } from "@/hooks/useChatAgent";
 import { useRegisterIPAgent } from "@/hooks/useRegisterIPAgent";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useAdvancedAIDetection } from "@/hooks/useAdvancedAIDetection";
 import { DEFAULT_LICENSE_SETTINGS } from "@/lib/license/terms";
 import type { LicenseSettings } from "@/lib/license/terms";
+import type { AdvancedAnalysisResult, SimpleRecommendation } from "@/types/ai-detection";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PlanBox } from "./PlanBox";
@@ -30,6 +32,7 @@ export function EnhancedAgentOrchestrator() {
   const chatAgent = useChatAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
+  const { analysis, recommendation, analyzeImageFromBase64, reset: resetAIAnalysis } = useAdvancedAIDetection();
   const publicClient = usePublicClient();
   
   const [toast, setToast] = useState<string | null>(null);
@@ -131,7 +134,7 @@ export function EnhancedAgentOrchestrator() {
     // Add immediate loading message when starting analysis
     const loadingMessage = {
       role: "agent" as const,
-      text: "Wait a moment, let me analyze your image for IP safety",
+      text: "🧠 Analyzing your image with advanced AI detection...\n\n• Detecting AI-generated content\n• Assessing quality & originality\n• Calculating IP eligibility\n• Generating license recommendations",
       ts: Date.now(),
       isLoading: true
     };
