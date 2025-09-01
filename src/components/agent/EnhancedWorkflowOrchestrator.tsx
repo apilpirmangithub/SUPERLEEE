@@ -442,7 +442,7 @@ You can now modify the license terms or metadata before registration.`;
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-          {/* Enhanced Header */}
+          {/* Header */}
           <div className="shrink-0 mb-3 lg:mb-4">
             <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 p-3 lg:p-4">
               <div className="flex items-center gap-3">
@@ -451,50 +451,23 @@ You can now modify the license terms or metadata before registration.`;
                 </div>
                 <div className="flex items-center gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-white">
-                      {workflowMode.type === 'smart-analysis' ? 'SMART ANALYSIS MODE' : 'CHAT WITH SUPERLEE'}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {workflowMode.type === 'smart-analysis' ? 'Enhanced AI Pipeline' : 'Traditional Chat Mode'}
-                    </div>
+                    <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
+                    <div className="text-xs text-gray-400">Smart Analysis + Chat Interface</div>
                   </div>
                   <AIStatusIndicator />
                 </div>
               </div>
 
-              {/* Mode Toggle & Actions */}
-              <div className="flex items-center gap-2">
-                {/* Workflow Mode Toggle */}
-                <div className="hidden md:flex bg-white/10 rounded-lg p-1">
-                  <button
-                    onClick={() => handleButtonClick("Switch to Chat Mode")}
-                    className={`px-3 py-1 rounded text-xs transition-colors ${
-                      workflowMode.type === 'chat' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    💬 Chat
-                  </button>
-                  <button
-                    onClick={() => handleButtonClick("Switch to Smart Mode")}
-                    className={`px-3 py-1 rounded text-xs transition-colors ${
-                      workflowMode.type === 'smart-analysis' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    🧠 Smart
-                  </button>
-                </div>
-
-                {/* New Chat Button */}
-                <button
-                  onClick={handleNewChat}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors"
-                  title="New Chat"
-                >
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
+              {/* New Chat Button */}
+              <button
+                onClick={handleNewChat}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors"
+                title="New Chat"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
             </div>
           </div>
 
