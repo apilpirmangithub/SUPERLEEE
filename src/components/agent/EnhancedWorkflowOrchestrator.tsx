@@ -335,16 +335,20 @@ You can now modify the license terms or metadata before registration.`;
   }, [chatAgent]);
 
   const handleSmartRetry = useCallback(() => {
-    setWorkflowMode({ type: 'smart-analysis', active: false });
     setCurrentWorkflowResult(null);
-    
-    // Trigger re-analysis
+
+    // Add retry message to chat
+    chatAgent.addMessage("agent", "🔄 Mengulangi smart analysis...");
+
+    // Trigger re-analysis with current file in chat
     setTimeout(() => {
       if (fileUpload.file) {
-        setWorkflowMode({ type: 'smart-analysis', active: true });
+        analyzeImageWithSmartPipeline();
+      } else {
+        chatAgent.addMessage("agent", "📁 Silakan upload file terlebih dahulu untuk analisis ulang.");
       }
     }, 100);
-  }, [fileUpload.file]);
+  }, [fileUpload.file, chatAgent]);
 
   const handleSmartReview = useCallback((result: WorkflowResult) => {
     setCurrentWorkflowResult(result);
