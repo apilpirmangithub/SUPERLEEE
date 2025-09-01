@@ -268,7 +268,13 @@ Tolerance: ${tolerance}`;
 
         ipText = wl.whitelisted ?
           `✅ **Whitelisted Content**\n\nStatus: Pre-approved for registration\nRisk: Low\nTolerance: Good to register\n\n⚠️ Note: Advanced AI analysis unavailable${errorInfo}` :
-          `📋 **Basic Assessment**\n\nStatus: Standard evaluation\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ **Advanced AI analysis unavailable**${errorInfo}\n\n💡 Contact admin to configure OpenAI API for enhanced features:
+          `📋 **Basic Assessment**\n\nStatus: Standard evaluation\nRisk: Medium\nTolerance: Proceed with caution\n\n⚠️ **Advanced AI analysis unavailable**${errorInfo}\n\n💡 Troubleshooting:
+• Check if OpenAI API key is configured
+• Verify network connectivity
+• Visit /ai-debug for detailed diagnostics
+• Contact admin for API configuration
+
+🔧 Enhanced features when AI is working:
 • AI content detection
 • Quality & IP eligibility scoring
 • Smart license recommendations
@@ -853,7 +859,7 @@ License Type: ${result.licenseType}`;
             text: `Permohonan review terkirim ✅\nCID: ${cid}`,
             links: [{ text: 'Lihat berkas review di IPFS', url }]
           });
-          setToast('Review submitted ���');
+          setToast('Review submitted �����');
         }}
       />
     </div>
