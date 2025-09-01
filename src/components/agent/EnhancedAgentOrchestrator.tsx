@@ -41,7 +41,7 @@ export function EnhancedAgentOrchestrator() {
   const [dupCheck, setDupCheck] = useState<{ checked: boolean; found: boolean; tokenId?: string } | null>(null);
   const [showCustomLicense, setShowCustomLicense] = useState(false);
   const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
-  const [selectedPilType, setSelectedPilType] = useState<'open_use' | 'commercial_remix'>('open_use');
+  const [selectedPilType, setSelectedPilType] = useState<'open_use' | 'commercial_remix'>('commercial_remix');
   const [selectedRevShare, setSelectedRevShare] = useState<number>(0);
   const [selectedLicensePrice, setSelectedLicensePrice] = useState<number>(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -711,7 +711,7 @@ License Type: ${result.licenseType}`;
             text: `Permohonan review terkirim ✅\nCID: ${cid}`,
             links: [{ text: 'Lihat berkas review di IPFS', url }]
           });
-          setToast('Review submitted ✅');
+          setToast('Review submitted ���');
         }}
       />
     </div>

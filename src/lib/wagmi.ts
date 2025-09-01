@@ -42,7 +42,7 @@ export const wagmiConfig = createConfig({
   chains: [storyAeneid],
   connectors,
   transports: {
-    [storyAeneid.id]: http(rpcUrl),
+    [storyAeneid.id]: http('/api/rpc/relay'),
   },
   ssr: true,
 });

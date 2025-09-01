@@ -62,15 +62,17 @@ function getLicenseOptions(): string[] {
   ];
 }
 
-function licenseToCode(license: string): { license: string; pilType: string } {
-  switch (license) {
-    case "Open Use":
-      return { license: "cc0", pilType: "open_use" };
-    case "Commercial Remix":
-      return { license: "by", pilType: "commercial_remix" };
-    default:
-      return { license: "cc0", pilType: "open_use" };
+function licenseToCode(license: string): { license: string; pilType: string } | null {
+  const s = license.trim().toLowerCase();
+  if (s === "open use" || s === "open" || s === "gratis" || s === "free" || s === "1") {
+    return { license: "cc0", pilType: "open_use" };
   }
+  if (s === "commercial remix" || s === "commercial" || s === "komersial" || s === "remix" || s === "2") {
+    return { license: "by", pilType: "commercial_remix" };
+  }
+  if (license === "Open Use") return { license: "cc0", pilType: "open_use" };
+  if (license === "Commercial Remix") return { license: "by", pilType: "commercial_remix" };
+  return null;
 }
 
 /** ===== Main Superlee Engine (IP-only) ===== */
@@ -122,7 +124,7 @@ export class SuperleeEngine {
     if (cleaned.includes("who is mushy") || cleaned.includes("mushy")) {
       return {
         type: "message",
-        text: "Mushy? Oh, that's the best CM in the world, no doubt. 😎",
+        text: "Mushy? Oh, that's the best CM in the world, no doubt. ��",
         image: {
           url: "https://cdn.builder.io/api/v1/image/assets%2F63395bcf097f453d9ecb84f69d3bcf7c%2F13e4207002674f1985b1c9ba838a17ba?format=webp&width=800",
           alt: "Mushy - The best CM in the world"
@@ -137,6 +139,19 @@ export class SuperleeEngine {
         text: "Fokus kami kini khusus registrasi IP. Fitur swap token dinonaktifkan.",
         buttons: ["Register IP", "Help"]
       };
+    }
+
+    // Allow one-click continuation after analysis
+    if (cleaned.includes("continue registration")) {
+      if (file) {
+        this.context.flow = "register";
+        this.context.registerData = { file };
+        this.context.state = "register_awaiting_name";
+        return { type: "awaiting_input", prompt: "Perfect! What should we call this IP? (Enter a title/name)" };
+      }
+      this.context.flow = "register";
+      this.context.state = "register_awaiting_file";
+      return { type: "message", text: "Lampirkan gambar terlebih dulu.", buttons: ["Upload File"] };
     }
 
     switch (this.context.state) {
@@ -176,23 +191,12 @@ export class SuperleeEngine {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
       this.context.registerData = {};
-
-      const responseText = await this.generateSmartResponse(
-        "User wants to register IP",
-        "User chose IP registration - be encouraging and ask for file upload"
-      ) || "Baik, unggah file IP Anda.";
-
-      return { type: "message", text: responseText, buttons: ["Upload File"] };
+      return { type: "message", text: "Baik, unggah file IP Anda.", buttons: ["Upload File"] };
     }
-
-    const helpResponse = await this.generateSmartResponse(
-      `User typed "${message}" when they should choose Register IP`,
-      "Guide user to start the IP flow"
-    );
 
     return {
       type: "message",
-      text: helpResponse || "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
+      text: "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
       buttons: ["Register IP", "Browse IP", "Help"]
     };
   }
@@ -229,43 +233,61 @@ export class SuperleeEngine {
   private handleDescriptionInput(description: string): SuperleeResponse {
     if (!this.context.registerData) this.context.registerData = {};
     this.context.registerData.description = description.trim();
-    this.context.state = "register_awaiting_license";
 
-    const licenseOptions = getLicenseOptions();
+    // Skip license step: go straight to PlanBox with sensible default (can be changed there)
+    const defaultPil = (process.env.NEXT_PUBLIC_DEFAULT_PIL || 'commercial_remix').toLowerCase();
+    const pilType = defaultPil === 'open_use' ? 'open_use' : 'commercial_remix';
+    const license = pilType === 'open_use' ? 'cc0' : 'by';
+    this.context.registerData.pilType = pilType;
+    this.context.registerData.license = license;
+    this.context.state = 'register_ready';
 
-    let message = "Which license type would you like to choose?\n\n";
-    licenseOptions.forEach((option, index) => { message += `${index + 1}. ${option}\n`; });
+    const intent: RegisterIntent = {
+      kind: 'register',
+      title: this.context.registerData.name,
+      prompt: this.context.registerData.description,
+      license: license as any,
+      pilType: pilType as any
+    };
 
-    if (this.context.registerData.aiAnalysis) {
-      const analysis = this.context.registerData.aiAnalysis;
-      message += `\n📸 AI detected: ${analysis.detectedObjects?.join(', ') || 'various objects'}`;
-      if (analysis.style) message += `\n🎨 Style: ${analysis.style}`;
-      if (analysis.mood) message += `\n😊 Mood: ${analysis.mood}`;
-    }
+    const plan = [
+      `Name IP : "${this.context.registerData.name}"`,
+      `Description: "${this.context.registerData.description}"`,
+      `License: ${pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
+    ];
 
-    return { type: "message", text: message, buttons: licenseOptions };
+    return { type: 'plan', intent, plan };
   }
 
   private handleLicenseSelection(license: string): SuperleeResponse {
     if (!this.context.registerData) this.context.registerData = {};
 
-    const licenseInfo = licenseToCode(license);
-    this.context.registerData.license = licenseInfo.license;
-    this.context.registerData.pilType = licenseInfo.pilType;
+    const info = licenseToCode(license);
+    if (!info) {
+      const licenseOptions = getLicenseOptions();
+      return {
+        type: "message",
+        text: "Pilih tipe lisensi dari tombol berikut:",
+        buttons: licenseOptions
+      };
+    }
+
+    this.context.registerData.license = info.license;
+    this.context.registerData.pilType = info.pilType;
     this.context.state = "register_ready";
 
     const intent: RegisterIntent = {
       kind: "register",
       title: this.context.registerData.name,
       prompt: this.context.registerData.description,
-      license: licenseInfo.license as any,
-      pilType: licenseInfo.pilType as any
+      license: info.license as any,
+      pilType: info.pilType as any
     };
 
     const plan = [
       `Name IP : "${this.context.registerData.name}"`,
       `Description: "${this.context.registerData.description}"`,
-      `License: ${license}`
+      `License: ${info.pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
     ];
 
     return { type: "plan", intent, plan };

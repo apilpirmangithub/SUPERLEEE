@@ -8,7 +8,8 @@ import {
   useChainId,
   useSwitchChain,
 } from "wagmi";
-import { erc721Abi, parseAbiItem } from "viem";
+import { erc721Abi, parseAbiItem, createPublicClient, http } from "viem";
+import { storyAeneid } from "@/lib/chains/story";
 
 type Item = {
   tokenId: string;
@@ -25,11 +26,12 @@ const START_BLOCK = BigInt(process.env.NEXT_PUBLIC_SPG_START_BLOCK ?? "0");
 const IFACE_ENUMERABLE = "0x780e9d63";
 
 function ipfsToHttps(url?: string) {
+  const gw = (process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://ipfs.io").replace(/\/$/, "");
   if (!url) return "";
-  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
+  if (url.startsWith("ipfs://")) return `${gw}/ipfs/${url.slice(7)}`;
   const m = url.match(/\/ipfs\/([^/?#]+)/i);
-  if (m?.[1]) return `https://ipfs.io/ipfs/${m[1]}`;
-  if (/^(baf|Qm)[a-zA-Z0-9]+$/.test(url)) return `https://ipfs.io/ipfs/${url}`;
+  if (m?.[1]) return `${gw}/ipfs/${m[1]}`;
+  if (/^(baf|Qm)[a-zA-Z0-9]+$/.test(url)) return `${gw}/ipfs/${url}`;
   return url;
 }
 
@@ -37,7 +39,7 @@ export default function DashboardPage() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync, isPending: switching } = useSwitchChain();
-  const pc = usePublicClient({ chainId: AENEID_ID }); // ✅ paksa Aeneid
+  const rpcClient = useMemo(() => createPublicClient({ chain: storyAeneid, transport: http('/api/rpc/relay') }), []);
 
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -46,15 +48,15 @@ export default function DashboardPage() {
   const [isFullScan, setIsFullScan] = useState(false);
 
   const canQuery = useMemo(
-    () => Boolean(isConnected && pc && SPG && address),
-    [isConnected, pc, address]
+    () => Boolean(isConnected && SPG && address),
+    [isConnected, address]
   );
 
   // ---------- Fast path: ERC721Enumerable ----------
   async function tryEnumerableRoute(): Promise<string[] | null> {
-    if (!pc || !SPG || !address) return null;
+    if (!rpcClient || !SPG || !address) return null;
     try {
-      const supports = (await pc.readContract({
+      const supports = (await rpcClient.readContract({
         address: SPG,
         abi: [
           {
@@ -71,7 +73,7 @@ export default function DashboardPage() {
 
       if (!supports) return null;
 
-      const bal = (await pc.readContract({
+      const bal = (await rpcClient.readContract({
         address: SPG,
         abi: erc721Abi,
         functionName: "balanceOf",
@@ -82,7 +84,7 @@ export default function DashboardPage() {
 
       const tokenIds: string[] = [];
       for (let i = 0n; i < bal; i++) {
-        const tid = (await pc.readContract({
+        const tid = (await rpcClient.readContract({
           address: SPG,
           abi: [
             {
@@ -110,8 +112,8 @@ export default function DashboardPage() {
 
   // ---------- Fallback: progressive log scan ----------
   async function fetchLogsProgressive(): Promise<string[]> {
-    if (!pc || !SPG || !address) return [];
-    const latest = await pc.getBlockNumber();
+    if (!rpcClient || !SPG || !address) return [];
+    const latest = await rpcClient.getBlockNumber();
 
     let range = 60_000n; // kecil → cepat tampil
     const maxBack = 2_000_000n;
@@ -120,7 +122,7 @@ export default function DashboardPage() {
     const tokenIds = new Set<string>();
     while (true) {
       const from = latest > range ? latest - range : 0n;
-      const logs = await pc.getLogs({
+      const logs = await rpcClient.getLogs({
         address: SPG,
         event: parseAbiItem(
           "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
@@ -143,14 +145,14 @@ export default function DashboardPage() {
 
   // ---------- Optional: full history scan ----------
   async function fetchLogsFull(): Promise<string[]> {
-    if (!pc || !SPG || !address) return [];
-    const latest = await pc.getBlockNumber();
+    if (!rpcClient || !SPG || !address) return [];
+    const latest = await rpcClient.getBlockNumber();
     const step = 75_000n;
     const tokenIds = new Set<string>();
 
     for (let from = START_BLOCK; from <= latest; from += step) {
       const to = from + step - 1n > latest ? latest : from + step - 1n;
-      const logs = await pc.getLogs({
+      const logs = await rpcClient.getLogs({
         address: SPG,
         event: parseAbiItem(
           "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
@@ -168,12 +170,12 @@ export default function DashboardPage() {
   }
 
   async function buildItems(tokenIds: string[]) {
-    if (!pc || !SPG) return [];
+    if (!rpcClient || !SPG) return [];
     const results: Item[] = await Promise.all(
       tokenIds.map(async (id) => {
         let tokenURI: string | undefined;
         try {
-          tokenURI = (await pc.readContract({
+          tokenURI = (await rpcClient.readContract({
             address: SPG,
             abi: erc721Abi,
             functionName: "tokenURI",
