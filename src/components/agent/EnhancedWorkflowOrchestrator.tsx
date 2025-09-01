@@ -20,20 +20,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Hex } from "viem";
 import { useRouter } from "next/navigation";
 
-interface WorkflowMode {
-  type: 'chat' | 'smart-analysis' | 'quick-register';
-  active: boolean;
-}
-
 export function EnhancedWorkflowOrchestrator() {
   const chatAgent = useChatAgent();
   const registerAgent = useRegisterIPAgent();
   const fileUpload = useFileUpload();
   const publicClient = usePublicClient();
   const router = useRouter();
-  
+
   const [toast, setToast] = useState<string | null>(null);
-  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>({ type: 'chat', active: false });
   const [workflowEngine] = useState(() => new EnhancedWorkflowEngine(publicClient || undefined));
   const [showCustomLicense, setShowCustomLicense] = useState(false);
   const [customTerms, setCustomTerms] = useState<import("@/lib/license/terms").LicenseTermsData | null>(null);
