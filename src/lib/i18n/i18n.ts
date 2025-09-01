@@ -81,6 +81,23 @@ const translations: Record<Lang, Dict> = {
     "buttons.copyDHash": "Salin dHash",
     "buttons.takePhoto": "Ambil Foto",
     "buttons.submitReview": "Kirim untuk Review",
+    "buttons.why": "Kenapa?",
+
+    // Smart license summaries and details
+    "smart.applied.title": "Rekomendasi AI diterapkan 🎉",
+    "smart.applied.body": "{message}\n\nLisensi: {license}\nAI Learning: {aiLearning}\n\nRincian\n- Minting fee: {mintingFee} WIP\n- Revenue share: {revShare}%\n- Commercial use: {commercialUse}\n- Derivatives: {derivatives}\n\nLanjutkan registrasi atau ubah pengaturan",
+    "details.title": "Detail analisis",
+    "details.ai": "AI",
+    "details.quality": "Kualitas",
+    "details.ip": "IP",
+    "details.license": "Lisensi",
+    "details.risk": "Risiko",
+    "details.suggestion": "Saran",
+    "toasts.aiApplied": "Rekomendasi AI diterapkan ✅",
+    "toasts.noAI": "Rekomendasi AI tidak tersedia ❌",
+    "generic.noMoreDetails": "Tidak ada detail tambahan",
+    "yes": "diizinkan",
+    "no": "dibatasi",
 
     // Engine messages
     "greeting.default": "Halo! Saya asisten IP. Unggah gambar untuk registrasi, atau pilih opsi di bawah.",
