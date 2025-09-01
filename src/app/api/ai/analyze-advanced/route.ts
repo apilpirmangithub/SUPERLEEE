@@ -30,17 +30,18 @@ export async function POST(req: Request) {
 
     let analysis: AdvancedAnalysisResult;
     let simpleRecommendation: any;
+    let detector: AdvancedAIDetectionWithLearningControl | null = null;
 
     try {
       // Try advanced analysis first
-      const detector = new AdvancedAIDetectionWithLearningControl();
+      detector = new AdvancedAIDetectionWithLearningControl();
       analysis = await detector.analyzeImage(finalImageUrl);
       simpleRecommendation = detector.getSimpleRecommendationWithAIControl(analysis);
     } catch (advancedError) {
       console.warn("Advanced analysis failed, trying fallback:", advancedError);
 
       try {
-        // Fallback to simpler analysis
+        // Fallback to simpler analysis (conservative)
         const fallbackDetector = new FallbackAIDetection();
         const fallbackResult = await fallbackDetector.analyzeImageBasic(finalImageUrl);
         analysis = fallbackResult.analysis;
@@ -54,13 +55,15 @@ export async function POST(req: Request) {
         throw new Error(`Analysis failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`);
       }
     }
-    
+
     // Generate enhanced metadata if user address provided
     let metadata = null;
     if (userAddress) {
+      // Ensure we have a detector instance for metadata utilities
+      if (!detector) detector = new AdvancedAIDetectionWithLearningControl();
       metadata = await detector.generateAdvancedMetadataWithAIControls(
-        finalImageUrl, 
-        analysis, 
+        finalImageUrl,
+        analysis,
         userAddress
       );
     }
