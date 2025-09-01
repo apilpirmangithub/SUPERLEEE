@@ -426,31 +426,6 @@ You can now modify the license terms or metadata before registration.`;
     }
   }, [fileUpload]);
 
-  const renderWorkflowContent = () => {
-    switch (workflowMode.type) {
-      case 'smart-analysis':
-        return (
-          <SmartAnalysisAggregator
-            file={fileUpload.file}
-            userAddress="user-address" // Would come from wallet
-            workflowEngine={workflowEngine}
-            onApprove={handleSmartApprove}
-            onEdit={handleSmartEdit}
-            onRetry={handleSmartRetry}
-            onReview={handleSmartReview}
-          />
-        );
-      
-      default:
-        return (
-          <MessageList
-            messages={chatAgent.messages}
-            onButtonClick={handleButtonClick}
-            isTyping={chatAgent.isTyping}
-          />
-        );
-    }
-  };
 
   return (
     <div className="mx-auto max-w-[1400px] px-2 sm:px-4 md:px-6 overflow-x-hidden">
