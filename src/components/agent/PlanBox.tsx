@@ -1,6 +1,8 @@
 import React from "react";
 import { Check, X } from "lucide-react";
 import type { Plan, RegisterState } from "@/types/agents";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import { statusText } from "./PlanBox.local";
 
 interface PlanBoxProps {
   plan: Plan;
@@ -15,20 +17,12 @@ interface PlanBoxProps {
 }
 
 export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseChange, selectedPilType, selectedRevShare, selectedLicensePrice, hideLicenseControls }: PlanBoxProps) {
+  const { t } = useI18n();
   const isExecuting = (plan.type === "register" && registerState?.status !== 'idle' && registerState?.status !== 'error');
 
   const getStatusText = () => {
     if (plan.type === "register" && registerState) {
-      switch (registerState.status) {
-        case 'compressing': return "Compressing image...";
-        case 'uploading-image': return "Uploading to IPFS...";
-        case 'creating-metadata': return "Creating metadata...";
-        case 'uploading-metadata': return "Uploading metadata...";
-        case 'minting': return "Minting NFT & registering IP...";
-        case 'success': return "IP registered successfully!";
-        case 'error': return "Registration failed";
-        default: return "";
-      }
+      return statusText(t, registerState.status);
     }
     return "";
   };
@@ -51,7 +45,7 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
       {plan.type === 'register' && !hideLicenseControls && (
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <label className="flex flex-col gap-1">
-            License Type
+            {t('planBox.licenseType')}
             <select
               className="bg-transparent border border-white/20 rounded p-2"
               onChange={(e) => onLicenseChange?.({ pilType: (e.target.value as any) })}
@@ -62,7 +56,7 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            Revenue Share (%)
+            {t('planBox.revShare')}
             <input
               type="number"
               className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
@@ -75,7 +69,7 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
             />
           </label>
           <label className="flex flex-col gap-1">
-            License Fee (IP)
+            {t('planBox.licenseFee')}
             <input
               type="number"
               className="bg-transparent border border-white/20 rounded p-2 disabled:opacity-50"
@@ -113,7 +107,7 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
           disabled={isExecuting}
         >
           <Check className="h-4 w-4" />
-          {isExecuting ? "Executing..." : "Confirm"}
+          {isExecuting ? getStatusText() : t('planBox.confirm')}
         </button>
         
         <button
@@ -122,14 +116,14 @@ export function PlanBox({ plan, onConfirm, onCancel, registerState, onLicenseCha
           disabled={isExecuting}
         >
           <X className="h-4 w-4" />
-          Cancel
+          {t('planBox.cancel')}
         </button>
       </div>
 
       {/* Error display */}
       {(registerState?.status === 'error' && registerState.error) && (
         <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
-          Error: {registerState?.error?.message || "Unknown error"}
+          {t('planBox.error')} {registerState?.error?.message || t('planBox.unknownError')}
         </div>
       )}
     </div>
