@@ -98,7 +98,7 @@ export class SuperleeEngine {
   }
 
   async getGreeting(): Promise<SuperleeResponse> {
-    let greetingText = "Halo! Saya asisten IP. Unggah gambar untuk registrasi IP, atau pilih tombol di bawah.";
+    let greetingText = tt("greeting.default");
 
     const allowSmart = (process.env.NEXT_PUBLIC_AI_SMART_RESPONSES ?? 'false') === 'true';
     if (this.context.aiEnabled && allowSmart) {
@@ -114,7 +114,7 @@ export class SuperleeEngine {
     return {
       type: "message",
       text: greetingText,
-      buttons: ["Register IP", "Browse IP", "Help"]
+      buttons: [tt("buttons.register"), tt("buttons.browse"), tt("buttons.help")]
     };
   }
 
@@ -138,8 +138,8 @@ export class SuperleeEngine {
     if (/\bswap\b|\btoken\b|\btrade\b|\bconvert\b/i.test(message)) {
       return {
         type: "message",
-        text: "Fokus kami kini khusus registrasi IP. Fitur swap token dinonaktifkan.",
-        buttons: ["Register IP", "Help"]
+        text: tt("swap.disabled"),
+        buttons: [tt("buttons.register"), tt("buttons.help")]
       };
     }
 
@@ -154,7 +154,7 @@ export class SuperleeEngine {
       }
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
-      return { type: "message", text: "Lampirkan gambar terlebih dulu.", buttons: ["Upload File"] };
+      return { type: "message", text: tt("await.uploadFirst"), buttons: [tt("buttons.uploadFile")] };
     }
 
     switch (this.context.state) {
@@ -184,23 +184,23 @@ export class SuperleeEngine {
 
   private async handleGreeting(message: string): Promise<SuperleeResponse> {
     if (/\b(browse|dashboard|my ip|lihat ip)\b/i.test(message)) {
-      return { type: "message", text: "Membuka Dashboard IP Anda.", links: [{ text: "Open Dashboard", url: "/dashboard" }] };
+      return { type: "message", text: tt("open.dashboard"), links: [{ text: tt("open.dashboard"), url: "/dashboard" }] };
     }
     if (/^(search|cari)\s+(.+)/i.test(message)) {
       const q = message.replace(/^(search|cari)\s+/i, "").trim();
-      return { type: "message", text: `Hasil pencarian untuk: ${q}`, links: [{ text: "Buka hasil di Dashboard", url: `/dashboard?q=${encodeURIComponent(q)}` }] };
+      return { type: "message", text: `${tt("search.resultsFor")} ${q}`, links: [{ text: tt("open.dashboard"), url: `/dashboard?q=${encodeURIComponent(q)}` }] };
     }
     if (message.includes("register") || message.includes("ip") || message.includes("mint")) {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
       this.context.registerData = {};
-      return { type: "message", text: "Baik, unggah file IP Anda.", buttons: ["Upload File"] };
+      return { type: "message", text: tt("upload.prompt"), buttons: [tt("buttons.uploadFile")] };
     }
 
     return {
       type: "message",
-      text: "Silakan pilih Registrasi IP untuk memulai, atau ketik: ‘browse’ / ‘search <kata>’.",
-      buttons: ["Register IP", "Browse IP", "Help"]
+      text: tt("greeting.pickAction"),
+      buttons: [tt("buttons.register"), tt("buttons.browse"), tt("buttons.help")]
     };
   }
 
@@ -212,9 +212,9 @@ export class SuperleeEngine {
 
     this.context.state = "register_awaiting_name";
 
-    let prompt = "Perfect! What should we call this IP? (Enter a title/name)";
+    let prompt = tt("prompt.name");
     if (this.context.registerData.aiAnalysis?.suggestedTitle) {
-      prompt += `\n\n💡 AI suggests: "${this.context.registerData.aiAnalysis.suggestedTitle}"`;
+      prompt += `\n\n💡 ${tt("ai.suggestsTitle")} "${this.context.registerData.aiAnalysis.suggestedTitle}"`;
     }
 
     return { type: "awaiting_input", prompt };
@@ -225,9 +225,9 @@ export class SuperleeEngine {
     this.context.registerData.name = name.trim();
     this.context.state = "register_awaiting_description";
 
-    let prompt = "Give me a description of your IP.";
+    let prompt = tt("prompt.description");
     if (this.context.registerData.aiAnalysis?.description) {
-      prompt += `\n\n💡 AI suggests: "${this.context.registerData.aiAnalysis.description}"`;
+      prompt += `\n\n💡 ${tt("ai.suggestsDesc")} "${this.context.registerData.aiAnalysis.description}"`;
     }
 
     return { type: "awaiting_input", prompt };
@@ -254,9 +254,9 @@ export class SuperleeEngine {
     };
 
     const plan = [
-      `Name IP : "${this.context.registerData.name}"`,
-      `Description: "${this.context.registerData.description}"`,
-      `License: ${pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
+      `${tt("plan.name")} "${this.context.registerData.name}"`,
+      `${tt("plan.description")} "${this.context.registerData.description}"`,
+      `${tt("plan.license")} ${pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
     ];
 
     return { type: 'plan', intent, plan };
@@ -270,7 +270,7 @@ export class SuperleeEngine {
       const licenseOptions = getLicenseOptions();
       return {
         type: "message",
-        text: "Pilih tipe lisensi dari tombol berikut:",
+        text: tt("greeting.pickAction"),
         buttons: licenseOptions
       };
     }
@@ -288,9 +288,9 @@ export class SuperleeEngine {
     };
 
     const plan = [
-      `Name IP : "${this.context.registerData.name}"`,
-      `Description: "${this.context.registerData.description}"`,
-      `License: ${info.pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
+      `${tt("plan.name")} "${this.context.registerData.name}"`,
+      `${tt("plan.description")} "${this.context.registerData.description}"`,
+      `${tt("plan.license")} ${info.pilType === 'open_use' ? 'Open Use' : 'Commercial Remix'}`
     ];
 
     return { type: "plan", intent, plan };
@@ -301,7 +301,7 @@ export class SuperleeEngine {
     if (/\bregister\b|\bmint\b|\bip\b/i.test(message)) {
       this.context.flow = "register";
       this.context.state = "register_awaiting_file";
-      return { type: "message", text: "Baik, unggah file IP Anda.", buttons: ["Upload File"] };
+      return { type: "message", text: tt("upload.prompt"), buttons: [tt("buttons.uploadFile")] };
     }
 
     if (!this.context.aiEnabled) return null;
@@ -364,11 +364,11 @@ export class SuperleeEngine {
       );
 
       if (smartResponse) {
-        return { type: "message", text: smartResponse, buttons: ["Register IP", "Help"] };
+        return { type: "message", text: smartResponse, buttons: [tt("buttons.register"), tt("buttons.help")] };
       }
     }
 
-    return { type: "message", text: fallbackText, buttons: ["Register IP", "Help"] };
+    return { type: "message", text: fallbackText, buttons: [tt("buttons.register"), tt("buttons.help")] };
   }
 
   private async analyzeUploadedImage(file: File): Promise<void> {
