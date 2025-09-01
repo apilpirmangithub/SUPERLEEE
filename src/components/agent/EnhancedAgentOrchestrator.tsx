@@ -16,6 +16,8 @@ import { HistorySidebar } from "./HistorySidebar";
 import { Toast } from "./Toast";
 import { CameraCapture } from "./CameraCapture";
 import { AIStatusIndicator } from "../AIStatusIndicator";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import SimpleLicenseWizard from "@/components/SimpleLicenseWizard";
 import ManualReviewModal from "@/components/agent/ManualReviewModal";
 import { loadIndexFromIpfs } from "@/lib/rag";
@@ -55,6 +57,7 @@ export function EnhancedAgentOrchestrator() {
   const [lastAIResult, setLastAIResult] = useState<AdvancedAnalysisResult | null>(null);
   const [lastAIRec, setLastAIRec] = useState<SimpleRecommendation | null>(null);
   const [smartApplied, setSmartApplied] = useState(false);
+  const { t } = useI18n();
 
   const handleNewChat = useCallback(() => {
     chatAgent.newChat();
@@ -558,7 +561,7 @@ License Type: ${result.licenseType}`;
       fileInputRef.current?.click();
       return;
     }
-    if (buttonText === "Upload File") {
+    if (buttonText === t("buttons.uploadFile") || buttonText === "Upload File") {
       fileInputRef.current?.click();
     } else if (buttonText === "🧠 Smart License") {
       // Apply AI-recommended license settings from last analysis
@@ -580,14 +583,23 @@ License Type: ${result.licenseType}`;
 
         const minForCustom = Number.parseInt(process.env.NEXT_PUBLIC_CUSTOM_LICENSE_MIN || '80', 10);
         const allowCustom = lastAIResult.ipEligibility.score >= minForCustom;
-        const nextButtons = ["Continue Registration", ...(allowCustom ? ["Custom License"] : [])];
+        const nextButtons = [t("buttons.continue"), ...(allowCustom ? [t("buttons.customLicense")] : [])];
         const st = lastAIResult.licenseRecommendation.suggestedTerms;
-        const msg = `Rekomendasi AI diterapkan 🎉\n\n${lastAIRec.message}\n\nLisensi: ${lastAIRec.license}\nAI Learning: ${lastAIRec.aiLearning}\n\nRincian\n- Minting fee: ${st.mintingFee} WIP\n- Revenue share: ${st.commercialRevShare}%\n- Commercial use: ${st.commercialUse ? 'diizinkan' : 'dibatasi'}\n- Derivatives: ${st.derivativesAllowed ? 'diizinkan' : 'dibatasi'}\n\nLanjutkan registrasi atau ubah pengaturan`;
+        const body = t("smart.applied.body", {
+          message: lastAIRec.message,
+          license: lastAIRec.license,
+          aiLearning: lastAIRec.aiLearning,
+          mintingFee: st.mintingFee,
+          revShare: st.commercialRevShare,
+          commercialUse: st.commercialUse ? t("yes") : t("no"),
+          derivatives: st.derivativesAllowed ? t("yes") : t("no"),
+        });
+        const msg = `${t("smart.applied.title")}\n\n${body}`;
         chatAgent.addMessage("agent", msg, nextButtons);
-        setToast("AI recommendation applied ✅");
+        setToast(t("toasts.aiApplied"));
         setSmartApplied(true);
       } else {
-        setToast("No AI recommendation available ❌");
+        setToast(t("toasts.noAI"));
       }
     } else if (buttonText === "Why?") {
       if (lastAIResult && lastAIRec) {
@@ -596,14 +608,14 @@ License Type: ${result.licenseType}`;
         const ipScore = `${lastAIResult.ipEligibility.score}/100`;
         const riskLevel = lastAIResult.ipEligibility.score >= 80 ? 'Low' : lastAIResult.ipEligibility.score >= 60 ? 'Medium' : 'High';
         const tolerance = lastAIResult.ipEligibility.isEligible ? 'Good to register' : 'Proceed with caution';
-        const details = `Detail analisis\nAI: ${aiStatus}\nKualitas: ${qualityScore}\nIP: ${ipScore} - ${lastAIResult.ipEligibility.isEligible ? 'eligible' : 'not eligible'}\nLisensi: ${lastAIRec.license}\nRisiko: ${riskLevel}\nSaran: ${tolerance}`;
+        const details = `${t("details.title")}\n${t("details.ai")}: ${aiStatus}\n${t("details.quality")}: ${qualityScore}\n${t("details.ip")}: ${ipScore} - ${lastAIResult.ipEligibility.isEligible ? 'eligible' : 'not eligible'}\n${t("details.license")}: ${lastAIRec.license}\n${t("details.risk")}: ${riskLevel}\n${t("details.suggestion")}: ${tolerance}`;
         chatAgent.addMessage("agent", details);
       } else {
-        chatAgent.addMessage("agent", "Tidak ada detail tambahan");
+        chatAgent.addMessage("agent", t("generic.noMoreDetails"));
       }
-    } else if (buttonText === "Continue Registration") {
+    } else if (buttonText === t("buttons.continue") || buttonText === "Continue Registration") {
       chatAgent.processPrompt(buttonText, (referenceFile || analyzedFile) || undefined);
-    } else if (buttonText === "Custom License" || buttonText === "🎯 Smart License") {
+    } else if (buttonText === t("buttons.customLicense") || buttonText === "Custom License" || buttonText === "🎯 Smart License") {
       setSmartApplied(false);
       setShowCustomLicense(true);
     } else if (buttonText === "Take Photo") {
@@ -748,6 +760,7 @@ License Type: ${result.licenseType}`;
                     <div className="text-sm font-semibold text-white">CHAT WITH SUPERLEE</div>
                   </div>
                   <AIStatusIndicator />
+                  <LanguageSwitcher />
                 </div>
               </div>
 
