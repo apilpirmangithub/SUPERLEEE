@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+// Using built-in crypto.randomUUID() instead of uuid package
 
 export interface ChatMessage {
   id: string;
