@@ -388,6 +388,36 @@ You can now modify the license terms or metadata before registration.`;
     }
   }, [chatAgent, currentWorkflowResult, handleSmartApprove, handleSmartEdit, handleSmartRetry, router]);
 
+  const showDetailedAnalysis = useCallback((result: WorkflowResult) => {
+    let detailText = `📊 **Detail Analisis Lengkap**\n\n`;
+
+    // Workflow steps
+    detailText += `⚡ **Tahapan Workflow:**\n`;
+    result.steps.forEach((step, index) => {
+      const icon = step.status === 'completed' ? '✅' : step.status === 'failed' ? '❌' : '⏳';
+      detailText += `${index + 1}. ${icon} ${step.name}`;
+      if (step.duration) detailText += ` (${step.duration}ms)`;
+      if (step.error) detailText += ` - Error: ${step.error}`;
+      detailText += `\n`;
+    });
+
+    detailText += `\n🏷️ **Tags:** ${result.analysis.tags.join(', ')}\n\n`;
+
+    if (result.analysis.enrichments.marketValue) {
+      detailText += `💰 **Estimasi Nilai Pasar:** $${result.analysis.enrichments.marketValue}\n\n`;
+    }
+
+    // Recommendations
+    if (result.recommendations.length > 1) {
+      detailText += `💡 **Semua Rekomendasi:**\n`;
+      result.recommendations.forEach((rec, index) => {
+        detailText += `${index + 1}. **${rec.action}** (${rec.priority})\n   ${rec.reason}\n`;
+      });
+    }
+
+    chatAgent.addMessage("agent", detailText);
+  }, [chatAgent]);
+
   const handleFileInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
