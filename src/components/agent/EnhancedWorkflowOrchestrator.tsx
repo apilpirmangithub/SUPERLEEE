@@ -82,54 +82,121 @@ export function EnhancedWorkflowOrchestrator() {
     setToast(null);
   }, [chatAgent, fileUpload]);
 
-  const analyzeImageForChat = async () => {
-    // Traditional chat-based analysis (existing logic)
-    // This maintains backward compatibility
+  const analyzeImageWithSmartPipeline = async () => {
     if (!fileUpload.file) return;
 
+    setIsAnalyzing(true);
+
+    // Add immediate loading message with smart pipeline indicator
     const loadingMessage = {
       role: "agent" as const,
-      text: "Analyzing your image with enhanced AI pipeline...",
+      text: "🧠 Menjalankan Smart Analysis Pipeline...\n\nTunggu sebentar, saya sedang menganalisis gambar Anda dengan 10 tahap pemeriksaan otomatis untuk keamanan dan kualitas IP.",
       ts: Date.now(),
       isLoading: true
     };
 
     chatAgent.addCompleteMessage(loadingMessage);
-    
+
+    // Store file reference and remove preview
+    const currentFile = fileUpload.file;
+    const previewUrl = URL.createObjectURL(currentFile);
+
     setTimeout(() => {
       fileUpload.removeFile();
     }, 100);
 
     try {
-      const result = await workflowEngine.executeAutoWorkflow(fileUpload.file, "user-address");
-      
-      const analysisText = `Analysis Complete ✅
+      // Run enhanced workflow pipeline
+      const result = await workflowEngine.executeAutoWorkflow(currentFile, "user-address");
+      setCurrentWorkflowResult(result);
 
-Content Type: ${result.analysis.contentType}
-Quality Score: ${result.analysis.quality}/10
-AI Generated: ${result.analysis.isAIGenerated ? 'Yes' : 'No'}
-Risk Level: ${result.analysis.riskLevel}
-Eligible for IP: ${result.analysis.isEligibleForIP ? 'Yes' : 'No'}
+      // Create detailed analysis text for chat
+      const stepsCompleted = result.steps.filter(s => s.status === 'completed').length;
+      const stepsFailed = result.steps.filter(s => s.status === 'failed').length;
 
-${result.analysis.description}
+      let analysisText = `🎯 Smart Analysis Complete (${stepsCompleted}/${result.steps.length} steps)\n\n`;
 
-Recommendation: ${result.recommendations[0]?.action || 'Ready to proceed'}`;
+      // Add analysis summary
+      analysisText += `📊 **Ringkasan Analisis:**\n`;
+      analysisText += `• Jenis Konten: ${result.analysis.contentType}\n`;
+      analysisText += `• Skor Kualitas: ${result.analysis.quality}/10\n`;
+      analysisText += `• AI Generated: ${result.analysis.isAIGenerated ? '🤖 Ya' : '👤 Tidak'}\n`;
+      analysisText += `• Level Risiko: ${result.analysis.riskLevel === 'low' ? '🟢 Rendah' : result.analysis.riskLevel === 'medium' ? '🟡 Sedang' : '🔴 Tinggi'}\n`;
+      analysisText += `• Layak untuk IP: ${result.analysis.isEligibleForIP ? '✅ Ya' : '❌ Tidak'}\n\n`;
 
-      const buttons = result.autoApproved 
-        ? ["Quick Register", "Custom License", "View Details"]
-        : ["Review & Edit", "Submit for Review", "View Details"];
+      // Add description
+      if (result.analysis.description) {
+        analysisText += `📝 **Deskripsi:** ${result.analysis.description}\n\n`;
+      }
 
+      // Add issues if any
+      if (result.analysis.violations.length > 0) {
+        analysisText += `⚠️ **Masalah yang ditemukan:**\n`;
+        result.analysis.violations.forEach(violation => {
+          analysisText += `• ${violation}\n`;
+        });
+        analysisText += `\n`;
+      }
+
+      // Add duplicate warning
+      if (result.analysis.duplicate.found) {
+        analysisText += `🚫 **Duplikasi Terdeteksi:** Konten ini sudah terdaftar${result.analysis.duplicate.tokenId ? ` (Token #${result.analysis.duplicate.tokenId})` : ''}.\n\n`;
+      }
+
+      // Add recommendation
+      const primaryRec = result.recommendations[0];
+      if (primaryRec) {
+        analysisText += `💡 **Rekomendasi:** ${primaryRec.action}\n`;
+        analysisText += `📋 **Alasan:** ${primaryRec.reason}\n\n`;
+      }
+
+      // Add license recommendation
+      analysisText += `📜 **Lisensi yang Disarankan:** ${result.analysis.suggestedLicense.replace('_', ' ').toUpperCase()}\n\n`;
+
+      // Determine appropriate buttons based on analysis
+      let buttons: string[] = [];
+
+      if (result.autoApproved && !result.analysis.duplicate.found) {
+        buttons = ["🚀 Quick Register", "✏️ Edit Metadata", "📊 View Details"];
+        analysisText += `✅ **Status: SIAP UNTUK REGISTRASI OTOMATIS**`;
+      } else if (result.analysis.duplicate.found) {
+        buttons = ["📝 Submit Review", "🔄 Upload Lain", "📊 View Details"];
+        analysisText += `🚫 **Status: REGISTRASI DIBLOKIR (DUPLIKASI)**`;
+      } else if (result.recommendations[0]?.type === 'review') {
+        buttons = ["📝 Submit Review", "✏️ Edit Metadata", "📊 View Details"];
+        analysisText += `👁️ **Status: BUTUH REVIEW MANUAL**`;
+      } else {
+        buttons = ["✏️ Edit Metadata", "🔄 Retry Analysis", "📊 View Details"];
+        analysisText += `⚠️ **Status: BUTUH PENYESUAIAN**`;
+      }
+
+      // Update message with results and image preview
       chatAgent.updateLastMessage({
         text: analysisText,
         isLoading: false,
-        buttons
+        buttons,
+        image: { url: previewUrl, alt: currentFile.name }
       });
+
+      // Show step details in separate message if requested
+      if (stepsFailed > 0) {
+        const failedSteps = result.steps.filter(s => s.status === 'failed');
+        const errorMessage = `⚠️ Beberapa pemeriksaan gagal:\n\n${failedSteps.map(s => `• ${s.name}: ${s.error}`).join('\n')}`;
+
+        setTimeout(() => {
+          chatAgent.addMessage("agent", errorMessage);
+        }, 1000);
+      }
+
     } catch (error) {
+      console.error('Smart analysis failed:', error);
       chatAgent.updateLastMessage({
-        text: "❌ Analysis failed. Please try again.",
+        text: "❌ Smart analysis gagal. Silakan coba lagi atau gunakan mode chat tradisional.",
         isLoading: false,
-        buttons: ["Retry", "Upload New File"]
+        buttons: ["🔄 Retry Analysis", "📁 Upload File Lain"]
       });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
