@@ -571,7 +571,8 @@ export class EnhancedWorkflowEngine {
   private async generateMetadata(file: File, analysis: ContentAnalysis, userAddress: string): Promise<any> {
     try {
       // Upload file to IPFS first
-      const ipfsHash = await uploadToIPFS(file);
+      const fileUploadResult = await uploadFile(file);
+      const ipfsHash = fileUploadResult.cid || fileUploadResult.hash;
       const imageUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
 
       const ipMetadata = {
